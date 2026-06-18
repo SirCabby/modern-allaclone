@@ -6,7 +6,8 @@
 return [
     'current_expansion'                 => 9,   // dragons of norrath
     'server_max_level'                  => 70,  // server max level
-    'magelo_base_url' => '',            // https://magelo.yourdomain.com
+    'magelo_menu_name' => 'Magelo Clone',
+    'magelo_base_url' => 'https://magelo.yourdomain.com/',            // https://magelo.yourdomain.com
 
     /**
      * NPC
@@ -38,7 +39,7 @@ return [
     ],
 
     'discovered_items' => [
-        'enable'                    => false,   // If TRUE, only Discovered Items will be displayed
+        'enable'                    => true,   // If TRUE, only Discovered Items will be displayed
         'link_character_to_magelo'  => true,    // link character who discovered to magelo (if enabled)
         'leaderboard'               => true,    // display leaderboard for most discovered items
     ],

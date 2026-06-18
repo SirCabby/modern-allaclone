@@ -57,19 +57,24 @@
                                         class="{{ Route::is('pets.*') ? 'bg-base-300' : '' }}" title="Pets">Pets</a>
                                 </li>
                                 @if (config('everquest.discovered_items.enable'))
-                                <li><a href="{{ route('discovery.index') }}"
-                                        class="{{ Route::is('discovery.index') ? 'bg-base-300' : '' }}"
-                                        title="Discovered Items">
-                                        Discovered Items
-                                    </a>
-                                </li>
-                                <li><a href="{{ route('discovery.leaderboard') }}"
-                                        class="{{ Route::is('discovery.*') ? 'bg-base-300' : '' }}"
-                                        title="Discovery Leaderboard">
-                                        Discovery Leaderboard
-                                    </a>
-                                </li>
+                                    <li><a href="{{ route('discovery.index') }}"
+                                            class="{{ Route::is('discovery.index') ? 'bg-base-300' : '' }}"
+                                            title="Discovered Items">
+                                            Discovered Items
+                                        </a>
+                                    </li>
+                                    <li><a href="{{ route('discovery.leaderboard') }}"
+                                            class="{{ Route::is('discovery.*') ? 'bg-base-300' : '' }}"
+                                            title="Discovery Leaderboard">
+                                            Discovery Leaderboard
+                                        </a>
+                                    </li>
                                 @endif
+                                <li class="divider my-1 h-px" role="separator"></li>
+                                <li><a href="{{ config('everquest.magelo_base_url') }}" title="{{ config('everquest.magelo_menu_name') }}">
+                                        {{ config('everquest.magelo_menu_name') }}
+                                    </a>
+                                </li>
                             </ul>
                         </details>
                     </li>
@@ -116,7 +121,8 @@
                             title="Recipes">Recipes</a></li>
                     @if (config('everquest.tasks.enable'))
                         <li><a href="{{ route('tasks.index') }}"
-                                class="{{ Route::is('tasks.*') ? 'active bg-base-200' : '' }}" title="Tasks">Tasks</a>
+                                class="{{ Route::is('tasks.*') ? 'active bg-base-200' : '' }}"
+                                title="Tasks">Tasks</a>
                         </li>
                     @endif
                     <li><a href="{{ route('factions.index') }}"
@@ -126,19 +132,25 @@
                             class="{{ Route::is('pets.*') ? 'active bg-base-200' : '' }}" title="Pets">Pets</a>
                     </li>
                     @if (config('everquest.discovered_items.enable'))
-                    <li><a href="{{ route('discovery.index') }}"
-                            class="{{ Route::is('discovery.index') ? 'bg-base-200' : '' }}"
-                            title="Discovered Items">
-                            Discovered Items
-                        </a>
-                    </li>
-                    <li><a href="{{ route('discovery.leaderboard') }}"
-                            class="{{ Route::is('discovery.leaderboard') ? 'bg-base-200' : '' }}"
-                            title="Discovery Leaderboard">
-                            Discovery Leaderboard
-                        </a>
-                    </li>
+                        <li><a href="{{ route('discovery.index') }}"
+                                class="{{ Route::is('discovery.index') ? 'bg-base-200' : '' }}"
+                                title="Discovered Items">
+                                Discovered Items
+                            </a>
+                        </li>
+                        <li><a href="{{ route('discovery.leaderboard') }}"
+                                class="{{ Route::is('discovery.leaderboard') ? 'bg-base-200' : '' }}"
+                                title="Discovery Leaderboard">
+                                Discovery Leaderboard
+                            </a>
+                        </li>
                     @endif
+                    <li class="divider my-1 h-px" role="separator"></li>
+                    <li><a href="{{ config('everquest.magelo_base_url') }}"
+                            title="{{ config('everquest.magelo_menu_name') }}">
+                            {{ config('everquest.magelo_menu_name') }}
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
