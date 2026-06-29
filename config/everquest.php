@@ -44,11 +44,13 @@ return [
         'leaderboard'               => true,    // display leaderboard for most discovered items
     ],
 
+    'coords_as_yxz'                 => false,
+
     // copying some of the allaclone settings for now (NOT ALL OF THESE ARE TIED BACK IN YET)
-    'allow_quests_npc'                  => false, // quests for npcs are available from NPC's page
-    'server_max_npc_level'              => 95, // Max Level for any NPCs on the Server
-    'spawngroup_around_range'           => 100, // range of surrounding spawngroups, spawngroups page
-    'trackable_npcs_only'               => true, // If TRUE, will only display NPCs that are set to be trackable in search results
+    'allow_quests_npc'              => false, // quests for npcs are available from NPC's page
+    'server_max_npc_level'          => 95, // Max Level for any NPCs on the Server
+    'spawngroup_around_range'       => 100, // range of surrounding spawngroups, spawngroups page
+    'trackable_npcs_only'           => true, // If TRUE, will only display NPCs that are set to be trackable in search results
 
     /**
      * Misc

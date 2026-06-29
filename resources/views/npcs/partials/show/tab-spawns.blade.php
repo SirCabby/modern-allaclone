@@ -4,7 +4,13 @@
         <table class="table table-auto md:table-fixed w-full table-zebra">
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[20%]">Coords (x,y,z)</th>
+                    <th scope="col" class="w-[20%]">
+                        @if (config('everquest.coords_as_yxz'))
+                            Coords (y,x,z)
+                        @else
+                            Coords (x,y,z)
+                        @endif
+                    </th>
                     <th scope="col" class="w-[50%]">Placeholders</th>
                     <th scope="col" class="w-[10%]">Chance</th>
                     <th scope="col" class="w-[20%]">Respawn</th>
@@ -19,13 +25,19 @@
                         <tr>
                             <td scope="row">
                                 @if (config('everquest.npc.display.spawn_locs'))
-                                    @if ($spawn->spawn2)
-                                        {{ floor($spawn->spawn2->x) }},
-                                        {{ floor($spawn->spawn2->y) }},
-                                        {{ floor($spawn->spawn2->z) }}
-                                    @else
-                                        -
-                                    @endif
+                                        @if ($spawn->spawn2)
+                                            @if (config('everquest.coords_as_yxz'))
+                                                {{ floor($spawn->spawn2->y) }},
+                                                {{ floor($spawn->spawn2->x) }},
+                                                {{ floor($spawn->spawn2->z) }}
+                                            @else
+                                                {{ floor($spawn->spawn2->x) }},
+                                                {{ floor($spawn->spawn2->y) }},
+                                                {{ floor($spawn->spawn2->z) }}
+                                            @endif
+                                        @else
+                                            -
+                                        @endif
                                 @else
                                     <span class="text-base-content/50">Hidden</span>
                                 @endif
