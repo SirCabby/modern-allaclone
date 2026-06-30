@@ -45,11 +45,17 @@ class NpcController extends Controller
 
             foreach ($npcs as $npc) {
                 foreach ($npc->spawnEntries as $entry) {
-                    if (!isset($entry->spawn2)) continue;
+                    $spawn2 = $entry->spawn2;
+
+                    if (is_object($spawn2) && method_exists($spawn2, 'first')) {
+                        $spawn2 = $spawn2->first();
+                    }
+
+                    if (!$spawn2) continue;
 
                     $entry->matched_zone = $zones
-                        ->where('short_name', $entry->spawn2->zone)
-                        ->where('version', $entry->spawn2->version)
+                        ->where('short_name', $spawn2->zone)
+                        ->where('version', $spawn2->version)
                         ->first();
                 }
             }

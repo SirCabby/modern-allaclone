@@ -17,10 +17,19 @@
                 <a href="{{ route('npcs.show', $npc->id) }}" class="link-info link-hover">
                     {{ $npc->clean_name }}
                 </a>
-                @if ($activity->cached_zones->isEmpty() && $npc['spawnentries']->first()?->spawn2->zoneData)
-                    @php
-                        $zone = $npc['spawnentries']->first()?->spawn2->zoneData;
-                    @endphp
+                @php
+                    $zone = null;
+                    if ($activity->cached_zones->isEmpty()) {
+                        $se = $npc['spawnentries']->first();
+                        $s2 = $se?->spawn2;
+                        if (is_object($s2) && method_exists($s2, 'first')) {
+                            $s2 = $s2->first();
+                        }
+
+                        $zone = $s2?->zoneData;
+                    }
+                @endphp
+                @if ($activity->cached_zones->isEmpty() && $zone)
                 in
                 <a href="{{ route('zones.show', $zone->id) }}" class="link-accent link-hover">
                     {{ $zone->long_name }}

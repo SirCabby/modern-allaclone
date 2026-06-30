@@ -43,9 +43,18 @@ class FactionController extends Controller
             ->get()
             ->unique('id')
             ->sortBy(function ($npc) {
-                return optional(
-                    $npc->spawnEntries->firstWhere(fn($se) => $se->spawn2 && $se->spawn2->zoneData)
-                )?->spawn2?->zoneData?->long_name ?? '';
+                foreach ($npc->spawnEntries as $se) {
+                    $s2 = $se->spawn2;
+                    if (is_object($s2) && method_exists($s2, 'first')) {
+                        $s2 = $s2->first();
+                    }
+
+                    if ($s2 && $s2->zoneData) {
+                        return $s2->zoneData->long_name;
+                    }
+                }
+
+                return '';
         });
 
         $factions = [
@@ -60,13 +69,21 @@ class FactionController extends Controller
                     continue;
                 }
 
-                $zoneId = optional(
-                    $npc->spawnEntries->firstWhere(fn($se) => $se->spawn2 && $se->spawn2->zoneData)
-                )?->spawn2?->zoneData?->id;
+                $zoneId = null;
+                $zoneName = 'Unknown Zone';
 
-                $zoneName = optional(
-                    $npc->spawnEntries->firstWhere(fn($se) => $se->spawn2 && $se->spawn2->zoneData)
-                )?->spawn2?->zoneData?->long_name ?? 'Unknown Zone';
+                foreach ($npc->spawnEntries as $se) {
+                    $s2 = $se->spawn2;
+                    if (is_object($s2) && method_exists($s2, 'first')) {
+                        $s2 = $s2->first();
+                    }
+
+                    if ($s2 && $s2->zoneData) {
+                        $zoneId = $s2->zoneData->id;
+                        $zoneName = $s2->zoneData->long_name;
+                        break;
+                    }
+                }
 
                 $type = $value > 0 ? 'raised' : 'lowered';
                 $zoneKey = $zoneId . '|' . $zoneName;
