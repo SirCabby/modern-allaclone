@@ -1,0 +1,28 @@
+services:
+  allaclone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: modern-allaclone:local
+    container_name: modern-allaclone
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${ALLACLONE_BIND:-0.0.0.0}:${ALLACLONE_PORT:-8081}:8080"
+    volumes:
+      # App state (sqlite: sessions, cache, quest index). Survives image rebuilds.
+      - allaclone-data:/var/www/html/database
+      # Quest scripts are read straight off the live server tree, read-only.
+      - ${QUESTS_PATH:-../akk-stack-live/server/quests}:/srv/quests:ro
+    networks:
+      - akk-live
+
+volumes:
+  allaclone-data:
+
+networks:
+  # Joins the running akk-stack-live stack so the DB is reachable at its service
+  # name (mariadb) instead of over the host's LAN address.
+  akk-live:
+    external: true
+    name: akk-stack-live_backend

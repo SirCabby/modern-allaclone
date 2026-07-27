@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AaAbilityController;
 use App\Http\Controllers\DiscoveredItemController;
+use App\Http\Controllers\EraController;
 use App\Http\Controllers\FactionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ItemController;
@@ -19,6 +20,9 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // global search
 Route::get('/search/suggest', [SearchController::class, 'suggest']);
+
+// era targeting (per-session view preference; defaults to the server's live era)
+Route::post('/era', [EraController::class, 'update'])->name('era.update');
 
 // aa abilitys
 Route::get('/aa', [AaAbilityController::class, 'index'])->name('aa.index');

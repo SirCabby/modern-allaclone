@@ -8,6 +8,8 @@ use App\Filters\ItemFilter;
 use Illuminate\Http\Request;
 use App\ViewModels\ItemViewModel;
 use Illuminate\Support\Facades\Cache;
+use App\Models\QuestScript;
+use App\Support\ContentFilter;
 
 class ItemController extends Controller
 {
@@ -50,7 +52,10 @@ class ItemController extends Controller
 
     public function show(Item $item)
     {
-        $itemCache = Cache::remember("items.show.{$item->id}", now()->addMonth(), function () use ($item) {
+        // Forage/fishing/merchant lookups are era-gated, so the era belongs in the key.
+        $era = ContentFilter::currentExpansion();
+
+        $itemCache = Cache::remember("items.show.{$item->id}.e{$era}", now()->addDay(), function () use ($item) {
             $item = Item::with(['evolvingDetails.item', 'discovery'])
                 ->where('id', $item->id)
                 ->firstOrFail();
@@ -67,8 +72,13 @@ class ItemController extends Controller
             ];
         });
 
+        // Quest scripts come from the on-disk index, not peq, so they are not
+        // era-gated and sit outside the cached payload above.
+        $questScripts = QuestScript::forItem($item->id)->get();
+
         return view('items.show', [
             ...$itemCache,
+            'questScripts' => $questScripts,
             'metaTitle' => config('app.name') . ' - Item: ' . $item->Name,
         ]);
     }

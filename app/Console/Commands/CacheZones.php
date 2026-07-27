@@ -6,6 +6,7 @@ use App\Models\Zone;
 use App\ViewModels\ZoneViewModel;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use App\Support\ContentFilter;
 
 class CacheZones extends Command
 {
@@ -28,14 +29,15 @@ class CacheZones extends Command
      */
     public function handle(): int
     {
-        $currentExpansion = config('everquest.current_expansion');
+        $currentExpansion = ContentFilter::currentExpansion();
         $zones = Zone::getExpansionZones($currentExpansion)->flatten(1);
 
         $this->info("Starting zone cache warming for {$zones->count()} zones...");
 
         foreach ($zones as $zone) {
             $version = $zone->version;
-            $cacheKey = "zones.show.{$zone->id}_v{$version}";
+            // Key must match ZoneController::show(), era suffix included.
+            $cacheKey = "zones.show.{$zone->id}_v{$version}_e{$currentExpansion}";
 
             // forget any previous cache we may have
             Cache::forget($cacheKey);

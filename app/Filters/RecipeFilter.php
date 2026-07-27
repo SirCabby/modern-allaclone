@@ -4,6 +4,7 @@ namespace App\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use App\Support\ContentFilter;
 
 class RecipeFilter
 {
@@ -59,7 +60,7 @@ class RecipeFilter
 
     protected function applyExpansionFilter()
     {
-        $currentExpansion = config('everquest.current_expansion');
+        $currentExpansion = ContentFilter::currentExpansion();
 
         $this->builder->where(function ($query) use ($currentExpansion) {
             $query->where('min_expansion', -1)->orWhere('min_expansion', '<=', $currentExpansion);

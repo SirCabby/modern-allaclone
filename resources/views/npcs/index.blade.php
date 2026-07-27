@@ -9,7 +9,7 @@
             $npc_class = config('everquest.npc_class');
             $npc_race = config('everquest.db_races');
             $expansions = config('everquest.expansions');
-            $currentExpansion = config('everquest.current_expansion');
+            $currentExpansion = \App\Support\ContentFilter::currentExpansion();
         @endphp
         <div class="flex w-full flex-col">
             <div class="divider uppercase text-xl font-bold text-sky-400">NPCs ({{ $npcs->total() }} Found)</div>

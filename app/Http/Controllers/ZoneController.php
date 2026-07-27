@@ -8,21 +8,24 @@ use App\Models\Zone;
 use App\ViewModels\ZoneViewModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use App\Support\ContentFilter;
 
 class ZoneController extends Controller
 {
     public function index(Request $request)
     {
-        $currentExpansion = config('everquest.current_expansion');
-        $expansions = config('everquest.expansions');
+        $currentExpansion = ContentFilter::currentExpansion();
 
-        $zones = Cache::remember('zones.index', now()->addMonth(), function () use ($currentExpansion) {
-            return Zone::getExpansionZones($currentExpansion);
-        });
+        // Cache key must carry the era, or switching eras would serve the
+        // previous era's zone list.
+        $zones = Cache::remember(
+            "zones.index.e{$currentExpansion}",
+            now()->addDay(),
+            fn () => Zone::getLiveZones($currentExpansion)
+        );
 
         return view('zones.index', [
             'zones' => $zones,
-            'expansions' => $expansions,
             'metaTitle' => config('app.name') . ' - Zones',
         ]);
     }
@@ -33,7 +36,10 @@ class ZoneController extends Controller
 
         $version = (int) $request->query('v', 0);
 
-        $zoneCache = Cache::rememberForever("zones.show.{$zone->id}_v{$version}", function () use ($zone, $version) {
+        $era = ContentFilter::currentExpansion();
+
+        // Era is part of the key: spawns, drops and merchants are all gated by it.
+        $zoneCache = Cache::rememberForever("zones.show.{$zone->id}_v{$version}_e{$era}", function () use ($zone, $version) {
             $zone = Zone::where('id', $zone->id)
                 ->with('zonepoints', function ($q) use ($version) {
                     $q->when($version > 0, fn ($q) => $q->where('version', $version))

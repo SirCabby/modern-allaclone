@@ -4,7 +4,24 @@
 */
 
 return [
-    'current_expansion'                 => 9,   // dragons of norrath
+    /**
+     * Era the site presents.
+     *   'auto'  follow the server's own Expansion:CurrentExpansion rule (default)
+     *   'all'   ignore expansion gating and show everything in the database
+     *   <int>   pin a specific expansion
+     * Resolved at request time by App\Support\ContentFilter -- do not read this
+     * key directly, call ContentFilter::currentExpansion() so the session
+     * override and the live rule value are honoured.
+     */
+    'expansion'                         => env('EQEMU_EXPANSION', 'auto'),
+    'allow_era_switch'                  => env('EQEMU_ALLOW_ERA_SWITCH', true),
+
+    /**
+     * Root of the server's quests/ tree (bind-mounted read-only). Quest scripts
+     * are files on disk, not database rows, so `php artisan quests:index` walks
+     * this to build the NPC/item cross-reference.
+     */
+    'quests_root'                       => env('QUESTS_ROOT', '/srv/quests'),
     'server_max_level'                  => 70,  // server max level
     'magelo_menu_name' => 'Magelo Clone',
     'magelo_base_url' => 'https://magelo.yourdomain.com/',            // https://magelo.yourdomain.com
@@ -39,7 +56,11 @@ return [
     ],
 
     'discovered_items' => [
-        'enable'                    => true,   // If TRUE, only Discovered Items will be displayed
+        // Off by default here: with an empty peq.discovered_items table (a server
+        // that has not been played much yet) leaving this on masks EVERY item on
+        // the site as "Undiscovered Item". Turn it back on once discovery data
+        // exists and you want that sense of mystery.
+        'enable'                    => env('EQEMU_DISCOVERY', false),
         'link_character_to_magelo'  => true,    // link character who discovered to magelo (if enabled)
         'leaderboard'               => true,    // display leaderboard for most discovered items
     ],

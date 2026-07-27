@@ -4,6 +4,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- Runs before first paint so the saved theme is applied without a flash of
+         the wrong one. Falls back to the OS preference, then to dark. --}}
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('theme');
+                if (saved !== 'light' && saved !== 'dark') {
+                    saved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                }
+                document.documentElement.setAttribute('data-theme', saved);
+            } catch (e) { /* private mode: keep the server-rendered default */ }
+        })();
+    </script>
     <title>{{ $metaTitle ?? config('app.name') }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
@@ -46,6 +59,7 @@
         </div>
     </div>
     @vite(['resources/js/app.js'])
+    @stack('scripts')
     <div x-data="{ show: false }" x-init="window.addEventListener('scroll', () => show = window.scrollY > 200)" x-show="show" x-transition
         class="fixed bottom-6 right-6 z-50">
         <button @click="window.scrollTo({ top: 0, behavior: 'smooth' })"

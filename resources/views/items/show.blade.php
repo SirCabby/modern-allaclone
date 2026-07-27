@@ -63,6 +63,10 @@
             @if ($soldByZone->isNotEmpty())
                 @include('items.partials.show.sold', ['sold' => $soldByZone])
             @endif
+
+            @if ($questScripts->isNotEmpty())
+                @include('items.partials.show.quests', ['questScripts' => $questScripts])
+            @endif
         </div>
     </div>
     @endsection

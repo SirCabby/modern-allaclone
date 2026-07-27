@@ -224,6 +224,9 @@
             @if ($npc->spawnEntries && $npc->spawnEntries->count() > 0)
                 @include('npcs.partials.show.tab-spawns')
             @endif
+            @if ($questScripts->isNotEmpty())
+                @include('npcs.partials.show.tab-quests')
+            @endif
             @if ($raisesFaction || $lowersFaction)
                 @include('npcs.partials.show.tab-faction')
             @endif

@@ -11,6 +11,7 @@ use App\Models\TradeskillRecipe;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use App\Support\ContentFilter;
 
 class ItemViewModel
 {
@@ -74,7 +75,7 @@ class ItemViewModel
     {
         $ignoreZones = config('everquest.ignore_zones') ?? [];
         $excludeMerchants = config('everquest.merchants_dont_drop_stuff') ?? true;
-        $currentExpansion = config('everquest.current_expansion');
+        $currentExpansion = ContentFilter::currentExpansion();
 
         $allZones = Cache::rememberForever('all_zones_drops', function () {
             return Zone::select('id', 'short_name', 'long_name', 'version', 'expansion')

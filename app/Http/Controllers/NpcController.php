@@ -9,13 +9,15 @@ use App\Models\NpcSpell;
 use App\Models\NpcType;
 use App\Models\Zone;
 use Illuminate\Http\Request;
+use App\Support\ContentFilter;
+use App\Models\QuestScript;
 
 class NpcController extends Controller
 {
     public function index(Request $request)
     {
         $npcs = collect();
-        $currentExpansion = config('everquest.current_expansion');
+        $currentExpansion = ContentFilter::currentExpansion();
 
         $ignoreZones = config('everquest.ignore_zones') ?? [];
         $zones = Zone::select('id', 'zoneidnumber', 'short_name', 'long_name', 'expansion', 'version')
@@ -162,6 +164,11 @@ class NpcController extends Controller
             ? DiscoveredItem::whereIn('item_id', $itemIds)->pluck('item_id')->flip()
             : collect();
 
+        // Quest scripts are indexed from the server's quests/ tree, not peq.
+        $questScripts = QuestScript::forNpc($npc->id)
+            ->with(['items.item'])
+            ->get();
+
         $defaultTab = null;
         if ($npc->lootTable?->loottableEntries->isNotEmpty()) {
             $defaultTab = 'drops';
@@ -169,6 +176,8 @@ class NpcController extends Controller
             $defaultTab = 'merchant';
         } elseif ($npc->spawnEntries->isNotEmpty()) {
             $defaultTab = 'spawns';
+        } elseif ($questScripts->isNotEmpty()) {
+            $defaultTab = 'quests';
         } elseif ($npc->npcFactionEntries->isNotEmpty()) {
             $defaultTab = 'faction';
         }
@@ -184,6 +193,7 @@ class NpcController extends Controller
             'lowersFaction' => $lowersFaction,
             'altCurrency' => $altCurrency,
             'discoveredItems' => $discoveredItems,
+            'questScripts' => $questScripts,
             'metaTitle' => config('app.name') . ' - NPC: ' . $npc->clean_name . $lvl,
         ]);
     }
