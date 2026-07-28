@@ -106,7 +106,11 @@ class ItemController extends Controller
 
     public function drops_by_zone(Item $item)
     {
-        $drops = Cache::rememberForever("items.drops_by_zone.{$item->id}", function () use ($item) {
+        // Era belongs in the key: a forever-cached payload computed under one
+        // era would otherwise keep serving that era's drops after a switch.
+        $era = ContentFilter::currentExpansion();
+
+        $drops = Cache::rememberForever("items.drops_by_zone.{$item->id}.e{$era}", function () use ($item) {
             return (new ItemViewModel($item))->dropsByZone();
         });
 

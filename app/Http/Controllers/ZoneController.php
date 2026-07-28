@@ -42,9 +42,13 @@ class ZoneController extends Controller
         $zoneCache = Cache::rememberForever("zones.show.{$zone->id}_v{$version}_e{$era}", function () use ($zone, $version) {
             $zone = Zone::where('id', $zone->id)
                 ->with('zonepoints', function ($q) use ($version) {
+                    ContentFilter::apply($q);
                     $q->when($version > 0, fn ($q) => $q->where('version', $version))
                         ->groupBy('target_zone_id')
-                        ->with('targetZones:id,zoneidnumber,short_name,long_name');
+                        // Constraining the target hides connections into zones
+                        // the presented era has not opened yet.
+                        ->with(['targetZones' => fn ($z) => ContentFilter::applyZone($z)
+                            ->select('id', 'zoneidnumber', 'short_name', 'long_name', 'expansion')]);
                 })
                 ->when($version > 0, fn ($q) => $q->where('version', $version))
                 ->firstOrFail();

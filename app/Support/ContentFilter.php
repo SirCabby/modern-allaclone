@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -90,7 +91,7 @@ class ContentFilter
      *
      * @param  string  $table  table (or alias) the columns live on; '' for unqualified
      */
-    public static function apply(EloquentBuilder|QueryBuilder $query, string $table = ''): EloquentBuilder|QueryBuilder
+    public static function apply(EloquentBuilder|QueryBuilder|Relation $query, string $table = ''): EloquentBuilder|QueryBuilder|Relation
     {
         $prefix = $table === '' ? '' : $table . '.';
         $expansion = self::currentExpansion();
@@ -115,7 +116,7 @@ class ContentFilter
      * old-world drop set, ...) independently of the expansion number, so they
      * apply even in "all eras" mode.
      */
-    private static function applyFlags(EloquentBuilder|QueryBuilder $query, string $prefix): void
+    private static function applyFlags(EloquentBuilder|QueryBuilder|Relation $query, string $prefix): void
     {
         $enabled = self::enabledFlags();
         $disabled = self::disabledFlags();
@@ -148,6 +149,33 @@ class ContentFilter
                 });
             }
         });
+    }
+
+    /**
+     * Era gate for the zone table itself, which is versioned by its own
+     * `expansion` column rather than min/max_expansion: a zone is visible once
+     * its expansion has been reached.
+     *
+     * @param  string  $table  table (or alias) the column lives on; '' for unqualified
+     */
+    public static function applyZone(EloquentBuilder|QueryBuilder|Relation $query, string $table = ''): EloquentBuilder|QueryBuilder|Relation
+    {
+        $prefix = $table === '' ? '' : $table . '.';
+        $expansion = self::currentExpansion();
+
+        if ($expansion !== self::ALL) {
+            $query->where($prefix . 'expansion', '<=', $expansion);
+        }
+
+        return $query;
+    }
+
+    /** Whether a zone of the given expansion is visible in the presented era. */
+    public static function zoneInEra(?int $expansion): bool
+    {
+        $current = self::currentExpansion();
+
+        return $current === self::ALL || ($expansion ?? 0) <= $current;
     }
 
     /** Every era that actually has zones in this database, for the switcher. */

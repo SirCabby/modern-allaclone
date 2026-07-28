@@ -19,14 +19,13 @@ class NpcController extends Controller
     public function index(Request $request)
     {
         $npcs = collect();
-        $currentExpansion = ContentFilter::currentExpansion();
 
         $ignoreZones = config('everquest.ignore_zones') ?? [];
         $zones = Zone::select('id', 'zoneidnumber', 'short_name', 'long_name', 'expansion', 'version')
             ->when(!empty($ignoreZones), function ($q) use ($ignoreZones) {
                 $q->whereNotIn('short_name', $ignoreZones);
             })
-            ->where('expansion', '<=', $currentExpansion)
+            ->tap(fn ($q) => ContentFilter::applyZone($q))
             ->orderBy('expansion')
             ->orderBy('long_name')
             ->get()
@@ -40,7 +39,27 @@ class NpcController extends Controller
                 ->whereNotNull('name')
                 ->where('name', '<>', '')
                 ->whereNotIn('race', [127, 240])
+                // An NPC belongs to the presented era if any of its spawn points
+                // survive the server's content gate inside an opened zone. NPCs
+                // with no spawn table at all (quest- or script-spawned) stay.
+                ->where(function ($q) {
+                    $q->whereDoesntHave('spawnEntries')
+                        ->orWhereHas('spawnEntries', function ($entry) {
+                            ContentFilter::apply($entry);
+                            $entry->whereHas('spawn2', function ($spawn2) {
+                                ContentFilter::apply($spawn2);
+                                $spawn2->whereHas('zoneData', fn ($zone) => ContentFilter::applyZone($zone));
+                            });
+                        });
+                })
                 ->with([
+                    'firstSpawnEntries' => function ($q) {
+                        ContentFilter::apply($q);
+                        $q->whereHas('spawn2', function ($spawn2) {
+                            ContentFilter::apply($spawn2);
+                            $spawn2->whereHas('zoneData', fn ($zone) => ContentFilter::applyZone($zone));
+                        });
+                    },
                     'firstSpawnEntries.spawn2.zoneData',
                 ])
                 ->orderBy('name', 'asc')
@@ -79,19 +98,35 @@ class NpcController extends Controller
 
         $npc = NpcType::with('npcSpellset.attackProcSpell')
             ->with([
+                'spawnEntries' => fn ($q) => ContentFilter::apply($q),
                 'spawnEntries.spawn2' => function ($q) use ($ignoreZones) {
                     if (!empty($ignoreZones)) {
                         $q->whereNotIn('zone', $ignoreZones);
                     }
 
+                    ContentFilter::apply($q);
+
                     $q->with(['npcs' => function ($npcs) {
                         $npcs->select('id', 'name', 'level', 'race', 'class');
                     }]);
                 },
+                // The spawn tab walks spawn2s (every point in the group), so the
+                // era gate has to ride along or hidden spawn points reappear.
+                'spawnEntries.spawn2s' => function ($q) use ($ignoreZones) {
+                    if (!empty($ignoreZones)) {
+                        $q->whereNotIn('zone', $ignoreZones);
+                    }
+
+                    ContentFilter::apply($q);
+                },
                 'firstSpawnEntries.spawn2.zoneData',
                 'npcFaction.primaryFaction',
                 'npcFactionEntries.factionList',
+                'lootTable' => fn ($q) => ContentFilter::apply($q),
+                'lootTable.loottableEntries.lootdropEntries' => fn ($q) => ContentFilter::apply($q)
+                    ->whereHas('lootdrop', fn ($drop) => ContentFilter::apply($drop)),
                 'lootTable.loottableEntries.lootdropEntries.item',
+                'merchantlist' => fn ($q) => ContentFilter::apply($q),
                 'merchantlist.items',
             ])
             ->findOrFail($npc->id);

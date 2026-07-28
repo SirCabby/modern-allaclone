@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\Zone;
 use App\Models\NpcType;
 use App\Models\SpawnTwo;
+use App\Support\ContentFilter;
 use Illuminate\Support\Collection;
 
 class ZoneViewModel
@@ -34,9 +35,13 @@ class ZoneViewModel
         $zone_short = $this->zone->short_name;
         $zone_id = $this->zone->zoneidnumber;
 
-        $query = NpcType::whereHas('spawnentries.spawn2', function ($query) use ($zone_short) {
-            $query->where('zone', $zone_short)
-                ->when($this->version > 0, fn ($q) => $q->where('version', $this->version));
+        $query = NpcType::whereHas('spawnentries', function ($entry) use ($zone_short) {
+            ContentFilter::apply($entry);
+            $entry->whereHas('spawn2', function ($query) use ($zone_short) {
+                ContentFilter::apply($query);
+                $query->where('zone', $zone_short)
+                    ->when($this->version > 0, fn ($q) => $q->where('version', $this->version));
+            });
             })
             ->whereNotIn('race', [127, 240])
             ->select([
@@ -71,8 +76,13 @@ class ZoneViewModel
             'loottable_entries.loottable_id',
             ])
             ->join('lootdrop_entries', 'items.id', '=', 'lootdrop_entries.item_id')
+            ->join('lootdrop', 'lootdrop_entries.lootdrop_id', '=', 'lootdrop.id')
             ->join('loottable_entries', 'lootdrop_entries.lootdrop_id', '=', 'loottable_entries.lootdrop_id')
+            ->join('loottable', 'loottable_entries.loottable_id', '=', 'loottable.id')
             ->whereIn('loottable_entries.loottable_id', $loottableIds)
+            ->tap(fn ($q) => ContentFilter::apply($q, 'lootdrop_entries'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'lootdrop'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'loottable'))
             ->groupBy('items.id', 'loottable_entries.loottable_id')
             ->orderBy('items.Name')
             //if ($discovered_items_only) {
@@ -109,13 +119,18 @@ class ZoneViewModel
 
     public function spawnGroups(): Collection
     {
-        return SpawnTwo::with(['spawnGroup.spawnentries.npc' => function ($q) {
-            $q->whereNotIn('race', [127, 240]);
-        }])
+        return SpawnTwo::with([
+            'spawnGroup.spawnentries' => fn ($q) => ContentFilter::apply($q),
+            'spawnGroup.spawnentries.npc' => function ($q) {
+                $q->whereNotIn('race', [127, 240]);
+            },
+        ])
         ->where('zone', $this->zone->short_name)
         ->when($this->version > 0, fn ($q) => $q->where('version', $this->version))
-        ->whereHas('spawnGroup.spawnentries.npc', function ($q) {
-            $q->whereNotIn('race', [127, 240]);
+        ->tap(fn ($q) => ContentFilter::apply($q))
+        ->whereHas('spawnGroup.spawnentries', function ($q) {
+            ContentFilter::apply($q);
+            $q->whereHas('npc', fn ($npc) => $npc->whereNotIn('race', [127, 240]));
         })
         ->get()
         ->map(function ($spawn2) {
@@ -133,7 +148,8 @@ class ZoneViewModel
 
     public function foraged(): Collection
     {
-        return Item::whereHas('foraged.zone', function ($query) {
+        return Item::whereHas('foraged', function ($query) {
+            ContentFilter::apply($query);
             $query->where('zoneid', $this->zone->zoneidnumber);
         })
         ->select('Name', 'id', 'icon', 'itemtype', 'bagslots')
@@ -143,7 +159,8 @@ class ZoneViewModel
 
     public function fished(): Collection
     {
-        return Item::whereHas('fished.zone', function ($query) {
+        return Item::whereHas('fished', function ($query) {
+            ContentFilter::apply($query);
             $query->where('zoneid', $this->zone->zoneidnumber);
         })
         ->select('Name', 'id', 'icon', 'itemtype', 'bagslots')

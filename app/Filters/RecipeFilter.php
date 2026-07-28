@@ -60,13 +60,8 @@ class RecipeFilter
 
     protected function applyExpansionFilter()
     {
-        $currentExpansion = ContentFilter::currentExpansion();
-
-        $this->builder->where(function ($query) use ($currentExpansion) {
-            $query->where('min_expansion', -1)->orWhere('min_expansion', '<=', $currentExpansion);
-        })
-        ->where(function ($query) use ($currentExpansion) {
-            $query->where('max_expansion', -1)->orWhere('max_expansion', '>=', $currentExpansion);
-        });
+        // The shared gate also understands "all eras" and content flags, which
+        // the old inline min/max comparison did not.
+        ContentFilter::apply($this->builder);
     }
 }

@@ -75,7 +75,6 @@ class ItemViewModel
     {
         $ignoreZones = config('everquest.ignore_zones') ?? [];
         $excludeMerchants = config('everquest.merchants_dont_drop_stuff') ?? true;
-        $currentExpansion = ContentFilter::currentExpansion();
 
         $allZones = Cache::rememberForever('all_zones_drops', function () {
             return Zone::select('id', 'short_name', 'long_name', 'version', 'expansion')
@@ -89,11 +88,17 @@ class ItemViewModel
             ->join('lootdrop_entries', 'items.id', '=', 'lootdrop_entries.item_id')
             ->join('lootdrop', 'lootdrop_entries.lootdrop_id', '=', 'lootdrop.id')
             ->join('loottable_entries', 'lootdrop.id', '=', 'loottable_entries.lootdrop_id')
+            ->join('loottable', 'loottable_entries.loottable_id', '=', 'loottable.id')
             ->join('npc_types', 'loottable_entries.loottable_id', '=', 'npc_types.loottable_id')
             ->join('spawnentry', 'npc_types.id', '=', 'spawnentry.npcID')
             ->join('spawn2', 'spawnentry.spawngroupID', '=', 'spawn2.spawngroupID')
             ->where('items.id', $itemId)
             ->where('spawnentry.chance', '>', 0)
+            ->tap(fn ($q) => ContentFilter::apply($q, 'lootdrop_entries'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'lootdrop'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'loottable'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'spawnentry'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'spawn2'))
             ->when($excludeMerchants, fn($q) => $q->where('npc_types.merchant_id', 0))
             ->when(!empty($ignoreZones), fn($q) => $q->whereNotIn('spawn2.zone', $ignoreZones))
             ->select([
@@ -122,7 +127,7 @@ class ItemViewModel
                                  ->where('version', (int) $version)
                                  ->first();
 
-            if (!$zoneData || ($zoneData->expansion ?? 0) > $currentExpansion) {
+            if (!$zoneData || !ContentFilter::zoneInEra($zoneData->expansion)) {
                 continue;
             }
 
@@ -186,6 +191,7 @@ class ItemViewModel
             $q->where('item_id', $this->item->id)
                 ->where('successcount', '>', 0);
         })
+        ->tap(fn ($q) => ContentFilter::apply($q))
         ->select('id', 'name', 'tradeskill', 'trivial', 'nofail')
         ->groupBy('id', 'name', 'tradeskill')
         ->get();
@@ -199,6 +205,7 @@ class ItemViewModel
                     $sub->where('componentcount', '>', 0)->orWhere('iscontainer', '=', 1);
                 });
         })
+        ->tap(fn ($q) => ContentFilter::apply($q))
         ->select('id', 'name', 'tradeskill')
         ->groupBy('id', 'name', 'tradeskill')
         ->get();
@@ -210,9 +217,12 @@ class ItemViewModel
 
         return Forage::with('zone')
             ->where('itemid', $this->item->id)
+            ->tap(fn ($q) => ContentFilter::apply($q))
             ->select('zoneid', 'chance', 'level')
             ->groupBy('zoneid', 'chance', 'level')
             ->get()
+            // zoneid 0 is global forage; only rows tied to an out-of-era zone hide.
+            ->filter(fn ($forage) => !$forage->zone || ContentFilter::zoneInEra($forage->zone->expansion))
             ->map(function ($forage) use($expansions) {
                 $zone = $forage->zone;
                 $expansionName = $zone && isset($expansions[$zone->expansion])
@@ -237,9 +247,11 @@ class ItemViewModel
         return Fishing::with('zone')
             ->where('itemid', $this->item->id)
             ->where('zoneid', '>', 0)
+            ->tap(fn ($q) => ContentFilter::apply($q))
             ->select('zoneid', 'chance', 'skill_level')
             ->groupBy('zoneid', 'chance', 'skill_level')
             ->get()
+            ->filter(fn ($fishing) => !$fishing->zone || ContentFilter::zoneInEra($fishing->zone->expansion))
             ->map(function ($fishing) use($expansions) {
                 $zone = $fishing->zone;
                 $expansionName = $zone && isset($expansions[$zone->expansion])
@@ -259,12 +271,27 @@ class ItemViewModel
 
     public function soldInZones(): Collection
     {
-        return NpcType::whereHas('merchantlist', fn($q) => $q->where('item', $this->item->id))
-            ->whereHas('spawnentries.spawn2.zoneData')
-            ->with('spawnentries.spawn2.zoneData')
+        return NpcType::whereHas('merchantlist', function ($q) {
+                ContentFilter::apply($q);
+                $q->where('item', $this->item->id);
+            })
+            ->whereHas('spawnentries', function ($q) {
+                ContentFilter::apply($q);
+                $q->whereHas('spawn2', function ($spawn2) {
+                    ContentFilter::apply($spawn2);
+                    $spawn2->whereHas('zoneData', fn ($zone) => ContentFilter::applyZone($zone));
+                });
+            })
+            ->with([
+                'spawnentries' => fn ($q) => ContentFilter::apply($q),
+                'spawnentries.spawn2' => fn ($q) => ContentFilter::apply($q),
+                'spawnentries.spawn2.zoneData',
+            ])
             ->get()
             ->map(function ($npc) {
-                $spawn = $npc->spawnentries->pluck('spawn2')->filter()->first();
+                $spawn = $npc->spawnentries->pluck('spawn2')
+                    ->filter(fn ($s) => $s && ContentFilter::zoneInEra($s->zoneData?->expansion))
+                    ->first();
                 $zone = $spawn?->zoneData;
 
                 return [
@@ -293,9 +320,11 @@ class ItemViewModel
     public function itemGroundSpawn(): Collection
     {
         return GroundSpawn::select(['zoneid', 'max_x', 'max_y', 'max_z'])
-            ->with(['zone:id,zoneidnumber,long_name'])
+            ->with(['zone:id,zoneidnumber,long_name,expansion'])
             ->where('item', $this->item->id)
+            ->tap(fn ($q) => ContentFilter::apply($q))
             ->get()
+            ->filter(fn ($spawn) => !$spawn->zone || ContentFilter::zoneInEra($spawn->zone->expansion))
             ->map(function ($spawn) {
                 return [
                     'zone_id' => $spawn->zone?->zoneidnumber,

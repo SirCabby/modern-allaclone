@@ -15,7 +15,7 @@ class LootdropEntry extends Model
 
     public function lootdrop(): BelongsTo
     {
-        return $this->belongsTo(Lootdrop::class, 'lootdrop_id', 'id');
+        return $this->belongsTo(LootDrop::class, 'lootdrop_id', 'id');
     }
 
     public function item(): BelongsTo

@@ -9,7 +9,6 @@
             $npc_class = config('everquest.npc_class');
             $npc_race = config('everquest.db_races');
             $expansions = config('everquest.expansions');
-            $currentExpansion = \App\Support\ContentFilter::currentExpansion();
         @endphp
         <div class="flex w-full flex-col">
             <div class="divider uppercase text-xl font-bold text-sky-400">NPCs ({{ $npcs->total() }} Found)</div>
@@ -47,7 +46,7 @@
                             </td>
                             <td>
                                 <div class="flex flex-col">
-                                    @if (is_object($zone) && $zone->expansion <= $currentExpansion)
+                                    @if (is_object($zone) && \App\Support\ContentFilter::zoneInEra($zone->expansion))
                                         <a href="{{ route('zones.show', $zone->id) }}{{ $zone->version > 0 ? '?v=' . $zone->version : '' }}"
                                             class="text-base link-info link-hover">
                                             {{ $zone->long_name }}

@@ -88,14 +88,13 @@ class QuestController extends Controller
      */
     private function liveZones()
     {
-        $currentExpansion = ContentFilter::currentExpansion();
         $ignoreZones = config('everquest.ignore_zones') ?? [];
 
         return Zone::select('id', 'short_name', 'long_name', 'expansion')
             ->when(!empty($ignoreZones), function ($q) use ($ignoreZones) {
                 $q->whereNotIn('short_name', $ignoreZones);
             })
-            ->where('expansion', '<=', $currentExpansion)
+            ->tap(fn ($q) => ContentFilter::applyZone($q))
             ->orderBy('long_name')
             ->get()
             ->unique('short_name')
