@@ -2,6 +2,7 @@
 
 namespace App\Filters;
 
+use App\Models\Task;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -40,9 +41,18 @@ class QuestFilter
         // name has a backtick or apostrophe the filesystem cannot hold.
         $script = str_replace([' ', '`', "'"], ['_', '-', '-'], trim($value));
 
-        $this->builder->where(function ($query) use ($value, $script) {
+        // Players know quests by their task title, not the file name, so match
+        // those too. Tasks live in peq (another connection), which rules out a
+        // cross-database whereHas -- resolve the ids first.
+        $taskIds = Task::where('title', 'like', '%' . trim($value) . '%')->pluck('id');
+
+        $this->builder->where(function ($query) use ($value, $script, $taskIds) {
             $query->where('npc_name', 'like', "%{$script}%")
                 ->orWhere('file_name', 'like', "%{$value}%");
+
+            if ($taskIds->isNotEmpty()) {
+                $query->orWhereHas('tasks', fn ($q) => $q->whereIn('task_id', $taskIds));
+            }
         });
     }
 

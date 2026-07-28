@@ -1,6 +1,6 @@
 <form @submit.prevent class="flex items-center space-x-2 w-full justify-end">
     <div x-data="eqsearch()" @click.away="results = []" class="relative w-full max-w-xs">
-        <input type="text" placeholder="Search NPCs, Items, Recipes..."
+        <input type="text" placeholder="Search NPCs, Items, Tasks..."
             pattern="[A-Za-z0-9 -_.'`]*"
             x-model="query"
             @input.debounce.600ms="load"
@@ -46,6 +46,7 @@
                                         'text-success': result.type === 'recipe',
                                         'text-secondary': result.type === 'faction',
                                         'text-error': result.type === 'quest',
+                                        'text-purple-400': result.type === 'task',
                                     }"
                                     x-text="result.type"></span>
                             </a>

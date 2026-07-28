@@ -435,6 +435,27 @@ class IndexQuests extends Command
             }
         }
 
+        // Selector lists built at runtime: lua `table.insert(task_array, 5784)`,
+        // perl `push(@task_array, 500146)`, and data tables carrying
+        // `task_id = 5501` entries. The selector call itself only ever sees a
+        // variable, so without these patterns whole scripts (the cultural armor
+        // artisans, the DoN captains) index with no tasks at all. They count as
+        // offers only when the script really drives a selector; `task_id == n`
+        // comparisons cannot match because the literal '=' consumes the first
+        // equals sign and `\d` rejects the second.
+        $kind = preg_match('/\b(?:task_?selector|assign_?task|enable_?task)\s*\(/i', $body)
+            ? 'offer' : 'mentioned';
+
+        foreach ([
+            '/table\.insert\s*\(\s*\w*task\w*\s*,\s*(\d+)/i',
+            '/\bpush\s*\(\s*@\w*task\w*\s*,\s*(\d+)/i',
+            '/\btask_id\s*=\s*(\d+)/i',
+        ] as $re) {
+            if (preg_match_all($re, $body, $m)) {
+                $add($m[1], $kind);
+            }
+        }
+
         // The counterpart to the `-- items: 1,2,3` header, for scripts that drive
         // tasks through a lookup table or a variable, where no literal call names
         // the id: `# tasks: 1,2,3`.

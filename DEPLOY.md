@@ -82,13 +82,16 @@ docker exec modern-allaclone php artisan quests:index
 That resolves each script to its NPC (by id, by `(zone, name)` through the spawn tables, then
 by global name — with a fallback for names whose backticks/apostrophes become `-` on disk) and
 extracts item IDs from hand-ins, `summonitem`, and the tree's own `-- items:` headers. It also
-extracts **task IDs** from `assigntask` / `taskselector` / `updatetaskactivity` and friends, plus
-a `-- tasks:` header in the same style. Every extracted ID is validated against `peq` before it
-is stored, which is what keeps timers, coordinates, and gold amounts from being indexed as
-items.
+extracts **task IDs** from `assigntask` / `taskselector` / `updatetaskactivity` and friends —
+including selector lists built at runtime (`table.insert(task_array, 5784)`,
+`push(@task_array, 500146)`, and `task_id = 5501` data tables, which is how the cultural armor
+artisans and the DoN captains offer theirs) — plus a `-- tasks:` header in the same style.
+Every extracted ID is validated against `peq` before it is stored, which is what keeps timers,
+coordinates, and gold amounts from being indexed as items.
 
-Result: a **Quests** tab on NPC pages (linked items + the script body) and an
-**appears in quest scripts** section on item pages.
+Result: a **Quests** tab on NPC pages (the tasks the NPC offers / advances, the tasks it is an
+objective of, linked items, and the script body) and an **appears in quest scripts** section on
+item pages.
 
 Re-run it after changing quests. `QUESTS_INDEX_ON_BOOT=true` runs it at container start.
 
@@ -103,6 +106,12 @@ tasks and items in `peq`, scripts in the sqlite index:
 | Item | *appears in quest scripts* | `quest_script_items` |
 | Task | *quest scripts driving this task* | `quest_script_tasks` |
 | Quest script | *Tasks* | `quest_script_tasks` |
+| NPC | *Tasks: Offers / Advances / References* | `quest_script_tasks`, through the NPC's own scripts only |
+| NPC | *Tasks: Target of* | `task_activities.npc_match_list` / `target_name`, reverse-matched in PHP |
+
+Quest search also matches **task titles** (resolved against `peq` first, since the two halves
+cannot be joined), so searching "arachnophobia" finds the scripts that drive that task even
+though the files are named for their NPCs.
 
 Two things to know when a reward does not show up:
 

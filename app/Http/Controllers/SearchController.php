@@ -8,6 +8,7 @@ use App\Models\Spell;
 use App\Models\NpcType;
 use App\Models\FactionList;
 use App\Models\QuestScript;
+use App\Models\Task;
 use App\Models\TradeskillRecipe;
 use Illuminate\Http\Request;
 
@@ -117,6 +118,21 @@ class SearchController extends Controller
                         'id' => 'quest-' . $qs->id
                     ];
                 })
+            )->merge(
+                // Tasks are what players know as quest names ("Pit Fiend
+                // (Group)"); their routes 404 when tasks are disabled, so gate
+                // the suggestions the same way as TasksEnabled.
+                !config('everquest.tasks.enable', true) ? collect() :
+                Task::where('title', 'like', "%{$q}%")
+                    ->where('enabled', 1)
+                    ->limit(5)->get()->map(function ($t) {
+                        return [
+                            'type' => 'task',
+                            'name' => $t->title,
+                            'url' => route('tasks.show', $t->id),
+                            'id' => 'task-' . $t->id
+                        ];
+                    })
             );
 
         return response()->json($results->take(40)->values());
