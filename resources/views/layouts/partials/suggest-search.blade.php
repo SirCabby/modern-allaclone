@@ -45,6 +45,7 @@
                                         'text-warning': result.type === 'spell',
                                         'text-success': result.type === 'recipe',
                                         'text-secondary': result.type === 'faction',
+                                        'text-error': result.type === 'quest',
                                     }"
                                     x-text="result.type"></span>
                             </a>

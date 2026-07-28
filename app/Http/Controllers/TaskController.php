@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Filters\TaskFilter;
 use Illuminate\Http\Request;
 use App\Models\AlternateCurrency;
+use App\Models\QuestScript;
 use Illuminate\Support\Facades\Cache;
 
 class TaskController extends Controller
@@ -60,9 +61,15 @@ class TaskController extends Controller
         // get cached alt currency since tasks could use it
         $altCurrency = AlternateCurrency::allAltCurrency();
 
+        // The scripts that actually drive this task. Tasks are defined in peq but
+        // offered and advanced from the quests/ tree, so this comes from the
+        // on-disk index rather than a join, and is not part of the cache above.
+        $questScripts = QuestScript::forTask($task->id)->get();
+
         return view('tasks.show', [
             'task' => $activities,
             'altCurrency' => $altCurrency,
+            'questScripts' => $questScripts,
             'metaTitle' => config('app.name') . ' - Task: ' . $task->title,
         ]);
     }

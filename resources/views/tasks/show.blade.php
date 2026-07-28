@@ -1,5 +1,8 @@
 @extends('layouts.default')
-@section('title', 'Task - ' . $task->title)
+@section('title')
+    Task - {{ $task->title }}
+    <x-entity-id :id="$task->id" label="Task ID" />
+@endsection
 
 @section('content')
     @include('tasks.partials.search')
@@ -157,5 +160,9 @@
                 <p class="italic">Task activities are hidden.</p>
             </div>
         </div>
+    @endif
+
+    @if ($questScripts->isNotEmpty())
+        @include('tasks.partials.show.scripts', ['questScripts' => $questScripts])
     @endif
 @endsection

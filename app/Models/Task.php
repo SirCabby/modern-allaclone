@@ -83,6 +83,57 @@ class Task extends Model
             ->orderBy('step', 'asc');
     }
 
+    /**
+     * Tasks that hand out an item.
+     *
+     * reward_id_list is a '|' separated string, so it has to be matched as a set:
+     * LIKE '%67106%' would also hit item 167106, and '0' would hit everything.
+     */
+    public static function rewardingItem(int $itemId)
+    {
+        return self::query()
+            ->where('enabled', 1)
+            ->whereRaw("FIND_IN_SET(?, REPLACE(reward_id_list, '|', ','))", [$itemId])
+            ->orderBy('id');
+    }
+
+    /** Tasks with an activity that loots, delivers or otherwise names an item. */
+    public static function requiringItem(int $itemId)
+    {
+        return self::query()
+            ->where('enabled', 1)
+            ->whereExists(
+                fn ($q) => $q->from('task_activities')
+                    ->whereColumn('task_activities.taskid', 'tasks.id')
+                    ->whereRaw("FIND_IN_SET(?, REPLACE(task_activities.item_id_list, '|', ','))", [$itemId])
+            )
+            ->orderBy('id');
+    }
+
+    /**
+     * Every task an item is involved in, tagged with how: 'reward' when the task
+     * pays it out, 'objective' when an activity asks for it, 'both' for both.
+     *
+     * This is the reverse of the reward/objective lists on the task page -- there
+     * is no join table to lean on, hence the two set-matched queries above.
+     */
+    public static function forItem(int $itemId): Collection
+    {
+        $rewards = self::rewardingItem($itemId)->get();
+        $objectives = self::requiringItem($itemId)->get();
+        $rewardIds = $rewards->pluck('id')->all();
+
+        return $rewards
+            ->each(fn ($t) => $t->item_role = $objectives->contains('id', $t->id) ? 'both' : 'reward')
+            ->concat(
+                $objectives
+                    ->reject(fn ($t) => in_array($t->id, $rewardIds, true))
+                    ->each(fn ($t) => $t->item_role = 'objective')
+            )
+            ->sortBy('id')
+            ->values();
+    }
+
     public static function attachRewardsMultiple(Collection|Paginator $tasks): Collection|Paginator
     {
         $arePaginated = $tasks instanceof Paginator;

@@ -25,6 +25,17 @@ class QuestScript extends Model
         'npc_ambiguous' => 'boolean',
     ];
 
+    /**
+     * Human-friendly name for pages and links: the NPC name with the
+     * filesystem substitutions undone ('_' for spaces, '#' marker stripped).
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        $base = $this->npc_name ?? preg_replace('/\.(lua|pl)$/', '', $this->file_name);
+
+        return str_replace(['_', '#'], [' ', ''], $base);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(QuestScriptItem::class);
@@ -33,6 +44,11 @@ class QuestScript extends Model
     public function npcs(): HasMany
     {
         return $this->hasMany(QuestScriptNpc::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(QuestScriptTask::class);
     }
 
     /** Scripts attached to a given NPC, plus any that reference it. */
@@ -51,6 +67,16 @@ class QuestScript extends Model
         return self::query()
             ->whereHas('items', fn ($q) => $q->where('item_id', $itemId))
             ->with(['items' => fn ($q) => $q->where('item_id', $itemId)])
+            ->orderBy('zone')
+            ->orderBy('file_name');
+    }
+
+    /** Scripts that offer, update, or mention a given task. */
+    public static function forTask(int $taskId)
+    {
+        return self::query()
+            ->whereHas('tasks', fn ($q) => $q->where('task_id', $taskId))
+            ->with(['tasks' => fn ($q) => $q->where('task_id', $taskId)])
             ->orderBy('zone')
             ->orderBy('file_name');
     }

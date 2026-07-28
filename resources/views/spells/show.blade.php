@@ -4,6 +4,7 @@
     <img src="{{ asset('img/icons/' . $spell->new_icon . '.png') }}" alt="{{ $spell->name }}"
         class="inline-block w-7 h-7 mr-2">
     {{ $spell->name }}
+    <x-entity-id :id="$spell->id" label="Spell ID" />
 @endsection
 
 @section('content')

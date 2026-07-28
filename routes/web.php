@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\NpcController;
 use App\Http\Controllers\PetController;
+use App\Http\Controllers\QuestController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SpellController;
@@ -51,6 +52,10 @@ Route::get('/spells/popup/{spell}', [SpellController::class, 'popup'])->name('sp
 // recipes
 Route::get('/recipes', [RecipeController::class, 'index'])->name('recipes.index');
 Route::get('/recipes/{recipe}', [RecipeController::class, 'show'])->name('recipes.show');
+
+// quests (indexed from the server's quests/ tree by `php artisan quests:index`)
+Route::get('/quests', [QuestController::class, 'index'])->name('quests.index');
+Route::get('/quests/{quest}', [QuestController::class, 'show'])->name('quests.show');
 
 // npcs
 Route::get('/npcs', [NpcController::class, 'index'])->name('npcs.index');

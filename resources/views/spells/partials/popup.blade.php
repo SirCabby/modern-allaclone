@@ -91,6 +91,10 @@
                     @endfor
                 </dd>
             </div>
+            <div class="px-4 py-1 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm/6 font-medium">Spell ID</dt>
+                <dd class="mt-2 text-sm sm:col-span-2 sm:mt-0 font-mono">{{ $spell->id }}</dd>
+            </div>
         </dl>
     </div>
 </div>

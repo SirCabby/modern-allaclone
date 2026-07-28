@@ -1,5 +1,8 @@
 @extends('layouts.default')
-@section('title', 'Pet' . ' - ' . $pet->type ?? 'Unknown')
+@section('title')
+    Pet - {{ $pet->type ?? 'Unknown' }}
+    <x-entity-id :id="$pet->id" label="Pet ID" />
+@endsection
 
 @section('content')
     @if ($pet && $pet->npcs)

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\ViewModels\ItemViewModel;
 use Illuminate\Support\Facades\Cache;
 use App\Models\QuestScript;
+use App\Models\Task;
 use App\Support\ContentFilter;
 
 class ItemController extends Controller
@@ -76,9 +77,19 @@ class ItemController extends Controller
         // era-gated and sit outside the cached payload above.
         $questScripts = QuestScript::forItem($item->id)->get();
 
+        // Tasks that reward or ask for this item -- the reverse of the reward and
+        // objective lists on the task page. Not era-gated either, but the lookup
+        // scans tasks.reward_id_list, so it is worth caching.
+        $tasks = Cache::remember(
+            "items.show.{$item->id}.tasks",
+            now()->addDay(),
+            fn () => Task::forItem($item->id)
+        );
+
         return view('items.show', [
             ...$itemCache,
             'questScripts' => $questScripts,
+            'tasks' => $tasks,
             'metaTitle' => config('app.name') . ' - Item: ' . $item->Name,
         ]);
     }

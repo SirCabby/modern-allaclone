@@ -5,7 +5,10 @@
         $title .= ' - Lvl ' . $npc->level . ($npc->maxlevel > 0 ? '-' . $npc->maxlevel : '');
     }
 @endphp
-@section('title', $title)
+@section('title')
+    {{ $title }}
+    <x-entity-id :id="$npc->id" label="NPC ID" />
+@endsection
 
 @section('content')
     @if ($npc)

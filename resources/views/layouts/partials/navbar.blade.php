@@ -36,6 +36,9 @@
                     <li><a href="{{ route('npcs.index') }}"
                             class="uppercase {{ Route::is('npcs.*') ? 'bg-base-300' : '' }}" title="NPCs">NPCs</a>
                     </li>
+                    <li><a href="{{ route('quests.index') }}"
+                            class="uppercase {{ Route::is('quests.*') ? 'bg-base-300' : '' }}" title="Quests">Quests</a>
+                    </li>
                     <li tabindex="0">
                         <details>
                             <summary
@@ -106,6 +109,8 @@
                 class="btn btn-ghost uppercase {{ Route::is('aa.*') ? 'btn-active' : '' }}">AAs</a>
             <a href="{{ route('npcs.index') }}" title="NPCs"
                 class="btn btn-ghost uppercase {{ Route::is('npcs.*') ? 'btn-active' : '' }}">NPCs</a>
+            <a href="{{ route('quests.index') }}" title="Quests"
+                class="btn btn-ghost uppercase {{ Route::is('quests.*') ? 'btn-active' : '' }}">Quests</a>
             <div class="dropdown dropdown-hover">
                 <label tabindex="0"
                     class="btn btn-ghost uppercase flex items-center gap-1 {{ $ddActive ? 'btn-active' : '' }}"

@@ -7,6 +7,7 @@ use App\Models\Zone;
 use App\Models\Spell;
 use App\Models\NpcType;
 use App\Models\FactionList;
+use App\Models\QuestScript;
 use App\Models\TradeskillRecipe;
 use Illuminate\Http\Request;
 
@@ -102,6 +103,20 @@ class SearchController extends Controller
                             'id' => 'spell-' . $s->id
                         ];
                     })
+            )->merge(
+                // Quest scripts use npc_types spellings ('_' for spaces), so
+                // reuse the NPC-shaped query string.
+                QuestScript::where(function ($builder) use ($q, $qNpcs) {
+                    $builder->where('npc_name', 'like', "%{$qNpcs}%")
+                        ->orWhere('file_name', 'like', "%{$q}%");
+                })->limit(5)->get()->map(function ($qs) {
+                    return [
+                        'type' => 'quest',
+                        'name' => $qs->display_name . ' (' . $qs->zone . ')',
+                        'url' => route('quests.show', $qs->id),
+                        'id' => 'quest-' . $qs->id
+                    ];
+                })
             );
 
         return response()->json($results->take(40)->values());

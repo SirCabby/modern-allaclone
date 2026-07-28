@@ -52,6 +52,7 @@ class IndexQuests extends Command
         $rows = [];
         $itemRefs = [];   // relative_path => [item_id => kind]
         $npcRefs = [];    // relative_path => [npc_id]
+        $taskRefs = [];   // relative_path => [task_id => kind]
 
         $bar = $this->output->createProgressBar(count($files));
         $bar->start();
@@ -87,6 +88,7 @@ class IndexQuests extends Command
 
             $itemRefs[$relative] = $this->extractItems($body);
             $npcRefs[$relative] = $this->extractNpcs($body);
+            $taskRefs[$relative] = $this->extractTasks($body);
 
             $bar->advance();
         }
@@ -97,17 +99,20 @@ class IndexQuests extends Command
         $this->line('Validating extracted IDs against peq...');
         $validItems = $this->validIds('items', collect($itemRefs)->flatMap(fn ($m) => array_keys($m))->unique()->all());
         $validNpcs = $this->validIds('npc_types', collect($npcRefs)->flatten()->unique()->all());
+        $validTasks = $this->validIds('tasks', collect($taskRefs)->flatMap(fn ($m) => array_keys($m))->unique()->all());
 
         $this->line(sprintf(
-            'Item refs: %d candidates -> %d real items | NPC refs: %d -> %d',
+            'Item refs: %d candidates -> %d real items | NPC refs: %d -> %d | Task refs: %d -> %d',
             collect($itemRefs)->flatMap(fn ($m) => array_keys($m))->unique()->count(),
             count($validItems),
             collect($npcRefs)->flatten()->unique()->count(),
             count($validNpcs),
+            collect($taskRefs)->flatMap(fn ($m) => array_keys($m))->unique()->count(),
+            count($validTasks),
         ));
 
         $this->line('Writing index...');
-        DB::transaction(function () use ($rows, $itemRefs, $npcRefs, $validItems, $validNpcs) {
+        DB::transaction(function () use ($rows, $itemRefs, $npcRefs, $taskRefs, $validItems, $validNpcs, $validTasks) {
             // Full rebuild: cascades clear the child tables.
             QuestScript::query()->delete();
 
@@ -118,6 +123,7 @@ class IndexQuests extends Command
             $ids = QuestScript::pluck('id', 'relative_path');
             $itemRows = [];
             $npcRows = [];
+            $taskRows = [];
 
             foreach ($itemRefs as $path => $map) {
                 $scriptId = $ids[$path] ?? null;
@@ -141,15 +147,29 @@ class IndexQuests extends Command
                 }
             }
 
+            foreach ($taskRefs as $path => $map) {
+                $scriptId = $ids[$path] ?? null;
+                if (!$scriptId) continue;
+
+                foreach ($map as $taskId => $kind) {
+                    if (isset($validTasks[$taskId])) {
+                        $taskRows[] = ['quest_script_id' => $scriptId, 'task_id' => $taskId, 'kind' => $kind];
+                    }
+                }
+            }
+
             foreach (array_chunk($itemRows, 500) as $chunk) {
                 DB::table('quest_script_items')->insertOrIgnore($chunk);
             }
             foreach (array_chunk($npcRows, 500) as $chunk) {
                 DB::table('quest_script_npcs')->insertOrIgnore($chunk);
             }
+            foreach (array_chunk($taskRows, 500) as $chunk) {
+                DB::table('quest_script_tasks')->insertOrIgnore($chunk);
+            }
 
-            $this->info(sprintf('Indexed %d scripts, %d item links, %d npc links',
-                count($rows), count($itemRows), count($npcRows)));
+            $this->info(sprintf('Indexed %d scripts, %d item links, %d npc links, %d task links',
+                count($rows), count($itemRows), count($npcRows), count($taskRows)));
         });
 
         $linked = QuestScript::whereNotNull('npc_id')->count();
@@ -344,6 +364,81 @@ class IndexQuests extends Command
 
         // The tree's own convention: a `-- items: 1,2,3` / `# items: 1,2,3` header.
         if (preg_match_all('/^\s*(?:--|#)\s*items?\s*:\s*([\d,\s]+)$/mi', $body, $m)) {
+            foreach ($m[1] as $list) {
+                $add(preg_split('/[,\s]+/', trim($list), -1, PREG_SPLIT_NO_EMPTY), 'mentioned');
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * Task IDs a script drives. Argument shapes matter here: taskselector() and
+     * enabletask() are variadic and every number in the call is a task, while
+     * updatetaskactivity() and friends take the task id FIRST and an ACTIVITY id
+     * second -- collecting both would invent tasks out of activity numbers.
+     *
+     * Two families are deliberately left out: `*inset` / `*taskcount` take a task
+     * SET id, and the crosszone* / worldwide* variants lead with a character,
+     * group or guild id. Both perl (assigntask) and lua (assign_task) spellings
+     * are matched.
+     *
+     * @return array<int, string> task_id => kind
+     */
+    private function extractTasks(string $body): array
+    {
+        $found = [];
+
+        $add = function (array $ids, string $kind) use (&$found) {
+            foreach ($ids as $id) {
+                $id = (int) $id;
+                if ($id <= 0) continue;
+                // offer beats update beats mentioned
+                $rank = ['offer' => 3, 'update' => 2, 'mentioned' => 1];
+                if (!isset($found[$id]) || $rank[$kind] > $rank[$found[$id]]) {
+                    $found[$id] = $kind;
+                }
+            }
+        };
+
+        // Variadic: every number in the call is a task id.
+        foreach ([
+            'offer' => ['task_?selector(?:_nocooldown)?', 'enable_?task'],
+            'update' => ['disable_?task'],
+        ] as $kind => $names) {
+            foreach ($names as $name) {
+                if (preg_match_all('/\b' . $name . '\s*\(\s*\{?([\d,\s]+)/i', $body, $m)) {
+                    foreach ($m[1] as $list) {
+                        $add(preg_split('/[,\s]+/', trim($list), -1, PREG_SPLIT_NO_EMPTY), $kind);
+                    }
+                }
+            }
+        }
+
+        // Task id is the first argument; whatever follows is an activity id or a flag.
+        foreach ([
+            'offer' => ['assign_?task'],
+            'update' => [
+                'update_?task_?activity', 'reset_?task_?activity', 'fail_?task',
+                'complete_?task', 'uncomplete_?task',
+            ],
+            'mentioned' => [
+                'is_?task_?active', 'is_?task_?activity_?active', 'is_?task_?completed',
+                'is_?task_?appropriate', 'is_?task_?enabled', 'task_?time_?left',
+                'get_?task_?activity_?done_?count', 'get_?task_?name',
+            ],
+        ] as $kind => $names) {
+            foreach ($names as $name) {
+                if (preg_match_all('/\b' . $name . '\s*\(\s*(\d+)/i', $body, $m)) {
+                    $add($m[1], $kind);
+                }
+            }
+        }
+
+        // The counterpart to the `-- items: 1,2,3` header, for scripts that drive
+        // tasks through a lookup table or a variable, where no literal call names
+        // the id: `# tasks: 1,2,3`.
+        if (preg_match_all('/^\s*(?:--|#)\s*tasks?\s*:\s*([\d,\s]+)$/mi', $body, $m)) {
             foreach ($m[1] as $list) {
                 $add(preg_split('/[,\s]+/', trim($list), -1, PREG_SPLIT_NO_EMPTY), 'mentioned');
             }

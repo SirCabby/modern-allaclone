@@ -4,6 +4,7 @@
     @section('title')
         <img src="{{ asset('img/icons/' . $item->icon . '.png') }}" alt="{{ $item->Name }}" class="inline-block w-7 h-7 mr-2">
         {{ $item->Name ?? 'Unknown Item' }}
+        <x-entity-id :id="$item->id" label="Item ID" />
     @endsection
 
     @section('content')
@@ -62,6 +63,10 @@
 
             @if ($soldByZone->isNotEmpty())
                 @include('items.partials.show.sold', ['sold' => $soldByZone])
+            @endif
+
+            @if ($tasks->isNotEmpty())
+                @include('items.partials.show.tasks', ['tasks' => $tasks])
             @endif
 
             @if ($questScripts->isNotEmpty())

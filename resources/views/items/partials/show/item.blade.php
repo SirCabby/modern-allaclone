@@ -433,6 +433,8 @@
         </div>
     @endif
 
+    <div class="mt-4 text-xs text-base-content/40 font-mono">Item ID: {{ $item->id }}</div>
+
     @if (!empty($item->discovery))
         <div class="mt-6 bg-emerald-900 text-sm text-white p-3 rounded">
             Discovered by

@@ -1,5 +1,8 @@
 @extends('layouts.default')
-@section('title', 'Recipe - ' . ucRomanNumeral($recipe->name))
+@section('title')
+    Recipe - {{ ucRomanNumeral($recipe->name) }}
+    <x-entity-id :id="$recipe->id" label="Recipe ID" />
+@endsection
 
 @section('content')
     @include('recipes.partials.search')

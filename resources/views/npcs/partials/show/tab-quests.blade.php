@@ -10,9 +10,10 @@
             @endphp
             <div class="border border-base-content/10 rounded">
                 <div class="bg-neutral px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-                    <span class="font-mono text-sm text-accent/80">
+                    <a href="{{ route('quests.show', $script->id) }}" class="font-mono text-sm text-accent/80 link-hover"
+                        title="View quest page">
                         {{ $script->relative_path }}
-                    </span>
+                    </a>
                     <span class="badge badge-sm badge-outline uppercase">{{ $script->language }}</span>
                 </div>
 

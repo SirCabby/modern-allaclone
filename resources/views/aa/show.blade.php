@@ -1,5 +1,8 @@
 @extends('layouts.default')
-@section('title', 'AA: ' . $ability->name)
+@section('title')
+    AA: {{ $ability->name }}
+    <x-entity-id :id="$ability->id" label="AA ID" />
+@endsection
 
 
 @section('content')

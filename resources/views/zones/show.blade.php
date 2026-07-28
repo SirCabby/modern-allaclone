@@ -6,7 +6,10 @@
         $title .= ' - v' . $zone->version;
     }
 @endphp
-@section('title', $title ?? 'Zone')
+@section('title')
+    {{ $title ?? 'Zone' }}
+    <x-entity-id :id="$zone->zoneidnumber" label="Zone ID" />
+@endsection
 
 @section('content')
     @if ($zone)

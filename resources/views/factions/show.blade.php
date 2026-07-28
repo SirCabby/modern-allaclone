@@ -1,5 +1,8 @@
 @extends('layouts.default')
-@section('title', 'Faction - ' . ($faction->name ?? 'Faction'))
+@section('title')
+    Faction - {{ $faction->name ?? 'Faction' }}
+    <x-entity-id :id="$faction->id" label="Faction ID" />
+@endsection
 
 @section('content')
     @if ($allFactions->isNotEmpty())

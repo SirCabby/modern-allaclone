@@ -81,14 +81,61 @@ docker exec modern-allaclone php artisan quests:index
 
 That resolves each script to its NPC (by id, by `(zone, name)` through the spawn tables, then
 by global name — with a fallback for names whose backticks/apostrophes become `-` on disk) and
-extracts item IDs from hand-ins, `summonitem`, and the tree's own `-- items:` headers. Every
-extracted ID is validated against `peq` before it is stored, which is what keeps timers,
-coordinates, and gold amounts from being indexed as items.
+extracts item IDs from hand-ins, `summonitem`, and the tree's own `-- items:` headers. It also
+extracts **task IDs** from `assigntask` / `taskselector` / `updatetaskactivity` and friends, plus
+a `-- tasks:` header in the same style. Every extracted ID is validated against `peq` before it
+is stored, which is what keeps timers, coordinates, and gold amounts from being indexed as
+items.
 
 Result: a **Quests** tab on NPC pages (linked items + the script body) and an
 **appears in quest scripts** section on item pages.
 
 Re-run it after changing quests. `QUESTS_INDEX_ON_BOOT=true` runs it at container start.
+
+### Reverse lookups
+
+Both directions are bridged, which matters because the two halves live in different databases —
+tasks and items in `peq`, scripts in the sqlite index:
+
+| Page | Section | Source |
+| --- | --- | --- |
+| Item | *is part of a task* | `tasks.reward_id_list` and `task_activities.item_id_list`, set-matched |
+| Item | *appears in quest scripts* | `quest_script_items` |
+| Task | *quest scripts driving this task* | `quest_script_tasks` |
+| Quest script | *Tasks* | `quest_script_tasks` |
+
+Two things to know when a reward does not show up:
+
+- A script that picks its reward out of a lookup table (class-specific armor, for instance)
+  never names the id in a `summonitem()` call, so **nothing** indexes it. Add the `-- items:` /
+  `-- tasks:` headers to the script — that is what they are for.
+- A task whose reward is granted from script must still list the possible items in
+  `tasks.reward_id_list` for them to appear here. That is safe only when the task is
+  `reward_method = 2` (METHODQUEST); at any other reward_method the emulator hands out every id
+  in the list to every class.
+
+Page data is cached, so after changing either side the site needs telling. From the stack that
+this browser follows (`akk-stack-live` by default):
+
+```bash
+make allaclone-refresh      # reindex quest scripts + clear cached pages
+```
+
+`make migrate-up` / `migrate-down` (and the experiments channel) already call that themselves, so
+a dbmate migration needs nothing extra. Run it by hand after editing quest scripts, which the
+database never sees. It no-ops unless this container is attached to the stack being operated on,
+so a dev migration will not claim to have refreshed a browser that follows live.
+
+> Adding a Laravel migration needs one extra step on an existing deployment: the
+> `allaclone-data` volume is mounted **over** `/var/www/html/database`, so migration files baked
+> into the image are invisible to a volume that already exists. Copy it in once, then migrate:
+>
+> ```bash
+> docker cp database/migrations/<file>.php modern-allaclone:/var/www/html/database/migrations/
+> docker exec modern-allaclone php artisan migrate --force
+> ```
+>
+> A fresh volume is seeded from the image and does not need this.
 
 ## Notes
 
