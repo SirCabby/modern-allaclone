@@ -4,13 +4,7 @@
         <table class="table table-auto md:table-fixed w-full table-zebra">
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[20%]">
-                        @if (config('everquest.coords_as_yxz'))
-                            Coords (y,x,z)
-                        @else
-                            Coords (x,y,z)
-                        @endif
-                    </th>
+                    <th scope="col" class="w-[20%]">Coords ({{ loc_order() }})</th>
                     <th scope="col" class="w-[50%]">Placeholders</th>
                     <th scope="col" class="w-[10%]">Chance</th>
                     <th scope="col" class="w-[20%]">Respawn</th>
@@ -28,15 +22,7 @@
                                 <td scope="row">
                                     @if (config('everquest.npc.display.spawn_locs'))
                                         @if ($spawn2)
-                                            @if (config('everquest.coords_as_yxz'))
-                                                {{ floor($spawn2->y) }},
-                                                {{ floor($spawn2->x) }},
-                                                {{ floor($spawn2->z) }}
-                                            @else
-                                                {{ floor($spawn2->x) }},
-                                                {{ floor($spawn2->y) }},
-                                                {{ floor($spawn2->z) }}
-                                            @endif
+                                            {{ format_loc(floor($spawn2->x), floor($spawn2->y), floor($spawn2->z)) }}
                                         @else
                                             -
                                         @endif

@@ -21,7 +21,7 @@ class ZoneController extends Controller
         $zones = Cache::remember(
             "zones.index.e{$currentExpansion}",
             now()->addDay(),
-            fn () => Zone::getLiveZones($currentExpansion)
+            fn () => Zone::getLiveZones()
         );
 
         return view('zones.index', [

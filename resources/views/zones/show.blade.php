@@ -55,8 +55,8 @@
                 <div class="flex flex-wrap gap-4 mt-2">
                     <div class="flex flex-col">
                         <span>
-                            <strong>Succor:</strong> x={{ $zone->safe_x ?? '?' }}, y={{ $zone->safe_y ?? '?' }},
-                            z={{ $zone->safe_z ?? '?' }}
+                            <strong>Succor:</strong>
+                            {{ format_loc($zone->safe_x ?? '?', $zone->safe_y ?? '?', $zone->safe_z ?? '?', labeled: true) }}
                         </span>
                     </div>
                     <div class="flex flex-col whitespace-nowrap">

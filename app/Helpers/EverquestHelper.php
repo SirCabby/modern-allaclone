@@ -52,6 +52,29 @@ if (!function_exists('eq_aa_types')) {
     }
 }
 
+if (!function_exists('format_loc')) {
+    function format_loc($x, $y, $z, bool $labeled = false): string
+    {
+        $coords = config('everquest.coords_as_yxz')
+            ? ['y' => $y, 'x' => $x, 'z' => $z]
+            : ['x' => $x, 'y' => $y, 'z' => $z];
+
+        $parts = [];
+        foreach ($coords as $label => $value) {
+            $parts[] = $labeled ? "{$label}={$value}" : $value;
+        }
+
+        return implode(', ', $parts);
+    }
+}
+
+if (!function_exists('loc_order')) {
+    function loc_order(): string
+    {
+        return config('everquest.coords_as_yxz') ? 'y,x,z' : 'x,y,z';
+    }
+}
+
 if (!function_exists('seconds_to_human')) {
     function seconds_to_human($seconds): string
     {

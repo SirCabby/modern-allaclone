@@ -76,8 +76,14 @@ class ItemViewModel
         $ignoreZones = config('everquest.ignore_zones') ?? [];
         $excludeMerchants = config('everquest.merchants_dont_drop_stuff') ?? true;
 
-        $allZones = Cache::rememberForever('all_zones_drops', function () {
-            return Zone::select('id', 'short_name', 'long_name', 'version', 'expansion')
+        $allZones = Cache::rememberForever('all_zones_drops.v2', function () {
+            return Zone::select(
+                    'id', 'short_name', 'long_name', 'version', 'expansion',
+                    // ContentFilter::zoneInEra() reads these; without them every
+                    // zone falls back to the permissive default.
+                    'bypass_expansion_check', 'min_expansion', 'max_expansion',
+                    'content_flags', 'content_flags_disabled'
+                )
                 ->orderBy('id')
                 ->get();
         });
@@ -127,7 +133,7 @@ class ItemViewModel
                                  ->where('version', (int) $version)
                                  ->first();
 
-            if (!$zoneData || !ContentFilter::zoneInEra($zoneData->expansion)) {
+            if (!$zoneData || !ContentFilter::zoneInEra($zoneData)) {
                 continue;
             }
 
@@ -222,7 +228,7 @@ class ItemViewModel
             ->groupBy('zoneid', 'chance', 'level')
             ->get()
             // zoneid 0 is global forage; only rows tied to an out-of-era zone hide.
-            ->filter(fn ($forage) => !$forage->zone || ContentFilter::zoneInEra($forage->zone->expansion))
+            ->filter(fn ($forage) => ContentFilter::zoneInEra($forage->zone))
             ->map(function ($forage) use($expansions) {
                 $zone = $forage->zone;
                 $expansionName = $zone && isset($expansions[$zone->expansion])
@@ -251,7 +257,7 @@ class ItemViewModel
             ->select('zoneid', 'chance', 'skill_level')
             ->groupBy('zoneid', 'chance', 'skill_level')
             ->get()
-            ->filter(fn ($fishing) => !$fishing->zone || ContentFilter::zoneInEra($fishing->zone->expansion))
+            ->filter(fn ($fishing) => ContentFilter::zoneInEra($fishing->zone))
             ->map(function ($fishing) use($expansions) {
                 $zone = $fishing->zone;
                 $expansionName = $zone && isset($expansions[$zone->expansion])
@@ -290,7 +296,7 @@ class ItemViewModel
             ->get()
             ->map(function ($npc) {
                 $spawn = $npc->spawnentries->pluck('spawn2')
-                    ->filter(fn ($s) => $s && ContentFilter::zoneInEra($s->zoneData?->expansion))
+                    ->filter(fn ($s) => $s && ContentFilter::zoneInEra($s->zoneData))
                     ->first();
                 $zone = $spawn?->zoneData;
 
@@ -320,11 +326,11 @@ class ItemViewModel
     public function itemGroundSpawn(): Collection
     {
         return GroundSpawn::select(['zoneid', 'max_x', 'max_y', 'max_z'])
-            ->with(['zone:id,zoneidnumber,long_name,expansion'])
+            ->with(['zone:id,zoneidnumber,long_name,expansion,bypass_expansion_check,min_expansion,max_expansion,content_flags,content_flags_disabled'])
             ->where('item', $this->item->id)
             ->tap(fn ($q) => ContentFilter::apply($q))
             ->get()
-            ->filter(fn ($spawn) => !$spawn->zone || ContentFilter::zoneInEra($spawn->zone->expansion))
+            ->filter(fn ($spawn) => ContentFilter::zoneInEra($spawn->zone))
             ->map(function ($spawn) {
                 return [
                     'zone_id' => $spawn->zone?->zoneidnumber,

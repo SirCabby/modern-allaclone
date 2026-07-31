@@ -46,7 +46,7 @@
                             </td>
                             <td>
                                 <div class="flex flex-col">
-                                    @if (is_object($zone) && \App\Support\ContentFilter::zoneInEra($zone->expansion))
+                                    @if (is_object($zone) && \App\Support\ContentFilter::zoneInEra($zone))
                                         <a href="{{ route('zones.show', $zone->id) }}{{ $zone->version > 0 ? '?v=' . $zone->version : '' }}"
                                             class="text-base link-info link-hover">
                                             {{ $zone->long_name }}

@@ -435,12 +435,12 @@ class SpellEffect extends Component
                         $zone = $this->allZones[$targetZone];
                     }
 
-                    $coords = [
-                        'x' => $spell['effect_base_value' . ($n)],
-                        'y' => $spell['effect_base_value' . ($n + 1)],
-                        'z' => $spell['effect_base_value' . ($n + 2)],
-                    ];
-                    $coords = implode(', ', $coords);
+                    // Teleport base values are stored y, x, z (see EQEmu SE_Teleport)
+                    $coords = format_loc(
+                        $spell['effect_base_value' . ($n + 1)],
+                        $spell['effect_base_value' . ($n)],
+                        $spell['effect_base_value' . ($n + 2)]
+                    );
                     $desc .= 'Teleport to (' . $coords . ') in ';
 
                     if ($zone) {
@@ -469,13 +469,12 @@ class SpellEffect extends Component
                     if ($targetZone !== '' && $targetZone !== 'same' && isset($this->allZones[$targetZone])) {
                         $zone = $this->allZones[$targetZone];
 
-                        $coords = [
-                            'x' => $spell['effect_base_value' . ($n)],
-                            'y' => $spell['effect_base_value' . ($n + 1)],
-                            'z' => $spell['effect_base_value' . ($n + 2)],
-                        ];
-
-                        $coords = implode(', ', $coords);
+                        // Teleport base values are stored y, x, z (see EQEmu SE_Succor)
+                        $coords = format_loc(
+                            $spell['effect_base_value' . ($n + 1)],
+                            $spell['effect_base_value' . ($n)],
+                            $spell['effect_base_value' . ($n + 2)]
+                        );
                         $desc .= 'Evacuate to (' . $coords . ') in ';
                         $desc .= '<a href="/zones/' . $zone->id . '" class="link-accent link-hover">' . $zone->long_name . '</a>';
                     } else {
@@ -553,12 +552,12 @@ class SpellEffect extends Component
                     if ($tzKey !== '' && isset($this->allZones[$tzKey])) {
                         $zone = $this->allZones[$tzKey];
 
-                        $coords = [
-                            'x' => $spell['effect_base_value' . ($n)],
-                            'y' => $spell['effect_base_value' . ($n + 1)],
-                            'z' => $spell['effect_base_value' . ($n + 2)],
-                        ];
-                        $coords = implode(', ', $coords);
+                        // Teleport base values are stored y, x, z (see EQEmu SE_Translocate)
+                        $coords = format_loc(
+                            $spell['effect_base_value' . ($n + 1)],
+                            $spell['effect_base_value' . ($n)],
+                            $spell['effect_base_value' . ($n + 2)]
+                        );
                         $desc .= 'Translocate to (' . $coords . ') in ';
                         $desc .= '<a href="/zones/' . $zone->id . '" class="link-accent link-hover">' . $zone->long_name . '</a>';
                     } else {
@@ -715,12 +714,12 @@ class SpellEffect extends Component
                 case 145:
                     if ($spell['teleport_zone'] !== 'same') {
                         $zone = $this->allZones[$spell['teleport_zone']];
-                        $coords = [
-                            'x' => $spell['effect_base_value' . ($n)],
-                            'y' => $spell['effect_base_value' . ($n + 1)],
-                            'z' => $spell['effect_base_value' . ($n + 2)],
-                        ];
-                        $coords = implode(', ', $coords);
+                        // Teleport base values are stored y, x, z (see EQEmu SE_Teleport2)
+                        $coords = format_loc(
+                            $spell['effect_base_value' . ($n + 1)],
+                            $spell['effect_base_value' . ($n)],
+                            $spell['effect_base_value' . ($n + 2)]
+                        );
                         $desc .= 'Teleport to (' . $coords . ') in ' . $spell['teleport_zone'];
                     } else {
                         $desc .= 'Teleport to to safe point in zone';

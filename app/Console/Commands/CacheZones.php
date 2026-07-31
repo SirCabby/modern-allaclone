@@ -30,7 +30,7 @@ class CacheZones extends Command
     public function handle(): int
     {
         $currentExpansion = ContentFilter::currentExpansion();
-        $zones = Zone::getExpansionZones($currentExpansion)->flatten(1);
+        $zones = Zone::getExpansionZones()->flatten(1);
 
         $this->info("Starting zone cache warming for {$zones->count()} zones...");
 

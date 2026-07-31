@@ -40,9 +40,9 @@ class Zone extends Model
         return $this->hasMany(TaskActivity::class, 'zones', 'zoneidnumber');
     }
 
-    public static function getExpansionZones(int $expansion): Collection
+    public static function getExpansionZones(): Collection
     {
-        return self::liveQuery($expansion)
+        return self::liveQuery()
             ->orderBy('expansion', 'asc')
             ->orderBy('long_name', 'asc')
             ->get()
@@ -54,20 +54,18 @@ class Zone extends Model
      * alphabetical list. The site shows what the server is actually running, so
      * there is nothing for a visitor to pick between.
      */
-    public static function getLiveZones(int $expansion): Collection
+    public static function getLiveZones(): Collection
     {
-        return self::liveQuery($expansion)
+        return self::liveQuery()
             ->orderBy('long_name', 'asc')
             ->get();
     }
 
-    private static function liveQuery(int $expansion)
+    private static function liveQuery()
     {
         return self::where('min_status', 0)
             ->whereNotIn('short_name', config('everquest.ignore_zones', []))
-            // ContentFilter::ALL means "ignore expansion gating"; otherwise a zone
-            // is listed once its expansion has been reached.
-            ->when($expansion !== ContentFilter::ALL, fn ($q) => $q->where('expansion', '<=', $expansion))
+            ->tap(fn ($q) => ContentFilter::applyZone($q))
             ->select('id', 'expansion', 'short_name', 'long_name', 'version', 'zone_exp_multiplier');
     }
 }

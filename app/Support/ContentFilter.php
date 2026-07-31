@@ -152,30 +152,94 @@ class ContentFilter
     }
 
     /**
-     * Era gate for the zone table itself, which is versioned by its own
-     * `expansion` column rather than min/max_expansion: a zone is visible once
-     * its expansion has been reached.
+     * Era gate for the zone table, which needs two checks rather than one.
      *
-     * @param  string  $table  table (or alias) the column lives on; '' for unqualified
+     * The standard criteria above pick which *row* is live -- zones are
+     * versioned, and PEQ marks each version's era window with
+     * min/max_expansion and content flags (the Splitpaw and Cazic Thule
+     * revamps, for instance, are separate rows gated that way).
+     *
+     * On top of that the server gates entry on the zone's own `expansion`
+     * column, and `bypass_expansion_check` opts a zone out of that gate so it
+     * can be opened ahead of its era. Plane of Knowledge, the guild lobby and
+     * the revamped old-world zones all rely on it. From zoning.cpp:
+     *
+     *   if (z->expansion <= GetCurrentExpansion() || z->bypass_expansion_check)
+     *
+     * @param  string  $table  table (or alias) the columns live on; '' for unqualified
      */
     public static function applyZone(EloquentBuilder|QueryBuilder|Relation $query, string $table = ''): EloquentBuilder|QueryBuilder|Relation
     {
         $prefix = $table === '' ? '' : $table . '.';
         $expansion = self::currentExpansion();
 
+        self::apply($query, $table);
+
         if ($expansion !== self::ALL) {
-            $query->where($prefix . 'expansion', '<=', $expansion);
+            $query->where(function ($q) use ($prefix, $expansion) {
+                $q->where($prefix . 'expansion', '<=', $expansion)
+                    ->orWhere($prefix . 'bypass_expansion_check', 1);
+            });
         }
 
         return $query;
     }
 
-    /** Whether a zone of the given expansion is visible in the presented era. */
-    public static function zoneInEra(?int $expansion): bool
+    /**
+     * The PHP-side twin of applyZone(), for zone rows that are already loaded.
+     *
+     * A null zone passes: callers use this on optional relations where "no zone
+     * row" means global content (zoneid 0 forage, say), not hidden content.
+     * Columns the caller did not select read as null and fall back to the
+     * permissive default, so select bypass_expansion_check, min_expansion,
+     * max_expansion and both content_flags columns wherever this is used.
+     */
+    public static function zoneInEra(?object $zone): bool
     {
+        if ($zone === null) {
+            return true;
+        }
+
+        if (!self::flagsAllow($zone->content_flags ?? null, self::enabledFlags())
+            || !self::flagsAllow($zone->content_flags_disabled ?? null, self::disabledFlags())) {
+            return false;
+        }
+
         $current = self::currentExpansion();
 
-        return $current === self::ALL || ($expansion ?? 0) <= $current;
+        if ($current === self::ALL) {
+            return true;
+        }
+
+        $min = (int) ($zone->min_expansion ?? -1);
+        $max = (int) ($zone->max_expansion ?? -1);
+
+        if (($min !== -1 && $min > $current) || ($max !== -1 && $max < $current)) {
+            return false;
+        }
+
+        return (int) ($zone->expansion ?? 0) <= $current
+            || (int) ($zone->bypass_expansion_check ?? 0) === 1;
+    }
+
+    /**
+     * PHP equivalent of the content-flag half of applyFlags(): an unset column
+     * always passes, otherwise one of the comma-separated names has to be in
+     * the given list.
+     */
+    private static function flagsAllow(?string $flags, array $active): bool
+    {
+        if ($flags === null || $flags === '') {
+            return true;
+        }
+
+        foreach (explode(',', $flags) as $flag) {
+            if (in_array(trim($flag), $active, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Every era that actually has zones in this database, for the switcher. */

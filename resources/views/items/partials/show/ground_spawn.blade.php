@@ -13,7 +13,7 @@
             <div class="flex min-w-0 gap-x-4">
                 <div class="min-w-0 flex-auto">
                     <p class="text-sm/6 font-semibold text-neutral-content">
-                        x={{ $spawn['x'] }}, y={{ $spawn['y'] }}, z={{ $spawn['z'] }}
+                        {{ format_loc($spawn['x'], $spawn['y'], $spawn['z'], labeled: true) }}
                     </p>
                 </div>
             </div>

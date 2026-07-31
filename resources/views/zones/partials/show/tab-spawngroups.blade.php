@@ -4,13 +4,7 @@
         <table class="table table-auto md:table-fixed w-full table-zebra">
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[40%] hidden md:table-cell">
-                        @if (config('everquest.coords_as_yxz'))
-                            Spawn Grp (y,x,z)
-                        @else
-                            Spawn Grp (x,y,z)
-                        @endif
-                    </th>
+                    <th scope="col" class="w-[40%] hidden md:table-cell">Spawn Grp ({{ loc_order() }})</th>
                     <th scope="col" class="w-[40%]">NPCs</th>
                     <th scope="col" class="w-[20%] text-right">Respawn</th>
                 </tr>
@@ -23,15 +17,7 @@
                                 {{ $grp->name }}
                                 <span class="text-xs uppercase text-gray-500">
                                     @if (config('everquest.npc.display.spawn_locs'))
-                                        @if (config('everquest.coords_as_yxz'))
-                                            {{ floor($grp->y) }},
-                                            {{ floor($grp->x) }},
-                                            {{ floor($grp->z) }}
-                                        @else
-                                            {{ floor($grp->x) }},
-                                            {{ floor($grp->y) }},
-                                            {{ floor($grp->z) }}
-                                        @endif
+                                        {{ format_loc(floor($grp->x), floor($grp->y), floor($grp->z)) }}
                                     @else
                                         Hidden
                                     @endif

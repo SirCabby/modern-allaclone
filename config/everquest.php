@@ -65,7 +65,9 @@ return [
         'leaderboard'               => true,    // display leaderboard for most discovered items
     ],
 
-    'coords_as_yxz'                 => false,
+    // The in-game /loc command reports coordinates as Y, X, Z. Keep this on so
+    // players can compare locs on the site directly against the client.
+    'coords_as_yxz'                 => true,
 
     // copying some of the allaclone settings for now (NOT ALL OF THESE ARE TIED BACK IN YET)
     'allow_quests_npc'              => false, // quests for npcs are available from NPC's page
