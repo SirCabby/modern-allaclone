@@ -61,6 +61,52 @@ class Zone extends Model
             ->get();
     }
 
+    /**
+     * Look zones up by short_name, grouped by short_name and earliest version
+     * first, for captioning things that only stored the name -- the item era
+     * index, for one.
+     *
+     * Not era-gated, unlike liveQuery(): the callers describe where an item
+     * comes from, which does not change with the era the site is presenting.
+     * A short_name repeats once per version of the zone and each version is its
+     * own page, so this cannot hand back a single row; forEra() picks.
+     */
+    public static function byShortNames(array $shortNames): Collection
+    {
+        if (!$shortNames) {
+            return collect();
+        }
+
+        return self::whereIn('short_name', $shortNames)
+            ->orderBy('version')
+            ->get(['id', 'short_name', 'long_name', 'version', 'expansion'])
+            ->groupBy('short_name');
+    }
+
+    /**
+     * Which version of a zone an item's era means: the one whose own expansion
+     * matches it, and otherwise the earliest.
+     *
+     * `paw` is the Classic Lair of the Splitpaw at version 0 and the Dragons of
+     * Norrath rework at version 1, and they are separate pages with separate
+     * NPCs -- so sending a DoN item to the Classic page is simply the wrong
+     * zone. Only a handful of zones have more than one version, and an era is
+     * usually raised by something other than the zone it names, so the fallback
+     * is the ordinary path and the match is the exception.
+     *
+     * @param Collection $zones as returned by byShortNames()
+     */
+    public static function forEra(Collection $zones, ?string $shortName, ?int $era): ?self
+    {
+        $versions = $shortName !== null ? ($zones[$shortName] ?? null) : null;
+
+        if (!$versions || $versions->isEmpty()) {
+            return null;
+        }
+
+        return $versions->firstWhere('expansion', $era) ?? $versions->first();
+    }
+
     private static function liveQuery()
     {
         return self::where('min_status', 0)

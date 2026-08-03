@@ -241,33 +241,83 @@ if (!function_exists('calculate_item_price')) {
     }
 }
 
-if (!function_exists('get_food_drink_desc')) {
-    function get_food_drink_desc(int $key, int $type) {
-        if ($key <= 0) {
+if (!function_exists('consumable_strength_band')) {
+    /**
+     * The strength band a consumable falls into, or null when the item is not
+     * food/drink/alcohol or carries no strength at all. Everything else reads
+     * casttime_ as a cast time, so the itemtype check is not optional.
+     */
+    function consumable_strength_band(?int $strength, ?int $type): ?array {
+        if (!in_array((int) $type, (array) config('everquest.consumable_types'), true)) {
             return null;
         }
 
-        if ($type == 14) {
-            $str = config('everquest.food_types');
-        } elseif($type == 15) {
-            $str = config('everquest.drink_types');
+        if (($strength ?? 0) <= 0) {
+            return null;
         }
 
-        if ($key >= 1 && $key <= 5) {
-            return $str[0];
-        } elseif ($key <= 20) {
-            return $str[1];
-        } elseif ($key <= 30) {
-            return $str[2];
-        } elseif ($key <= 40) {
-            return $str[3];
-        } elseif ($key <= 50) {
-            return $str[4];
-        } elseif ($key <= 60) {
-            return $str[5];
-        } else {
-            return $str[6];
+        foreach ((array) config('everquest.consumable_strengths') as $band) {
+            if ($strength >= $band['min'] && ($band['max'] === null || $strength <= $band['max'])) {
+                return $band;
+            }
         }
+
+        return null;
+    }
+}
+
+if (!function_exists('get_food_drink_desc')) {
+    /**
+     * The in game blurb -- "This is a feast!" and friends. Alcohol has no such
+     * wording, so it gets its potency shown instead.
+     */
+    function get_food_drink_desc(int $key, int $type) {
+        $band = consumable_strength_band($key, $type);
+
+        if (!$band || $type == 38) {
+            return null;
+        }
+
+        return $band[$type == 14 ? 'food' : 'drink']['desc'];
+    }
+}
+
+if (!function_exists('consumable_strength_label')) {
+    /**
+     * Short form for the search results: "Feast (45)" for food and drink,
+     * "Potency 90" for alcohol.
+     */
+    function consumable_strength_label(?int $strength, ?int $type): ?string {
+        $band = consumable_strength_band($strength, $type);
+
+        if (!$band) {
+            return null;
+        }
+
+        if ($type == 38) {
+            return "Potency {$strength}";
+        }
+
+        return $band[$type == 14 ? 'food' : 'drink']['label'] . " ({$strength})";
+    }
+}
+
+if (!function_exists('click_usage')) {
+    /**
+     * Where an item has to be for its click to fire -- 'inventory', 'equipped',
+     * or null where there is no click to place.
+     *
+     * The effect bounds are the ones the item page already uses to decide
+     * whether to draw the effect at all (peq stores -1 for "none" and a stray
+     * row or two points past the end of the spell table), so the column and the
+     * item agree about which items have a click in the first place.
+     */
+    function click_usage(?int $clickeffect, ?int $clicktype): ?string {
+        if ($clickeffect === null || $clickeffect <= 0 || $clickeffect >= 65535) {
+            return null;
+        }
+
+        return config('everquest.click_types.' . (int) $clicktype);
     }
 }
 

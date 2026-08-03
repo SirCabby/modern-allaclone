@@ -1,8 +1,10 @@
 <div x-data class="{{ $itemClass }}">
     <a href="{{ route('items.show', $itemId) }}"
         @mouseenter="$store.tooltip.loadTooltip('{{ route('items.popup', $itemId) }}', $el, $event)"
-        @mouseleave="$store.tooltip.hideTooltip()" class="text-base link-info link-hover flex items-center gap-1"
-        title="{{ $itemName }}">
+        {{-- No title attribute: the hover popup above already shows the whole
+             item window, and the browser's own tooltip would only repeat the
+             link text sitting right next to it. --}}
+        @mouseleave="$store.tooltip.hideTooltip()" class="text-base link-info link-hover flex items-center gap-1">
 
         @if (isset($itemIcon))
             <img src="{{ asset('img/icons/' . $itemIcon . '.png') }}" alt="{{ $itemName }}" width="20"

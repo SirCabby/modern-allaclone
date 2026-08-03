@@ -10,7 +10,8 @@ class QuestScriptItem extends Model
     protected $table = 'quest_script_items';
     public $timestamps = false;
 
-    protected $fillable = ['quest_script_id', 'item_id', 'kind'];
+    /** `branch` groups a reward with the turn-in that gates it; 0 is ungated. */
+    protected $fillable = ['quest_script_id', 'item_id', 'kind', 'branch'];
 
     public function questScript(): BelongsTo
     {

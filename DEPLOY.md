@@ -10,6 +10,16 @@ docker compose up -d          # http://192.168.1.7:8081
 docker compose logs -f        # boot + php-fpm/nginx output
 ```
 
+The `Makefile` wraps this and everything below — `make` with no target lists the lot:
+
+```bash
+make            # list targets
+make up         # start
+make logs       # follow logs
+make rebuild    # rebuild the image and recreate (needed for any code change)
+make refresh    # ship everything: rebuild, migrate, reindex, drop caches
+```
+
 The container joins the external `akk-stack-live_backend` network, so the database is reached
 at `mariadb:3306` rather than over the LAN.
 
@@ -70,6 +80,45 @@ planning content. Set `EQEMU_ALLOW_ERA_SWITCH=false` to remove it.
 
 Caches are keyed by era, so switching does not serve another era's data.
 
+### The era checklist on item search
+
+`peq.items` has no expansion columns — an item's era is a property of *where you can get
+it*, so it has to be derived. `php artisan items:index-eras` walks every route into a
+player's inventory and keeps the **earliest** answer:
+
+| Source | Path |
+| --- | --- |
+| `loot` | `lootdrop_entries` → `loottable_entries` → `npc_types` → `spawn2` → `zone.expansion` |
+| `merchant` | `merchantlist` → `npc_types.merchant_id` → `spawn2` → `zone.expansion` |
+| `forage` / `fishing` / `ground` | the row's `zoneid` → `zone.expansion` |
+| `quest` | the zone folder of the script that hands it out (needs `quests:index` first) |
+| `recipe` | the era of the recipe's **last** component — you need all of them, so a Kunark bar in a Classic recipe makes the product Kunark. Recipes feed recipes, so this runs to a fixpoint. A recipe with its own `min_expansion` set uses that instead. |
+
+Zones at `expansion = 99` (loading screens, art tests) and anything in `ignore_zones` are
+not eras and are skipped, as are ids that no longer exist in `peq.items`.
+
+The zone that produced the answer is kept alongside the era, which is what the **Zone**
+column on the results table shows — where the item drops, is sold, or is handed over.
+Crafted items and the LDoN-flagged ones are dated without being placed anywhere, so they
+have no zone and show `-`; that is about a quarter of the index.
+
+The result lands in `item_expansions` in the app's own sqlite database — it cannot be
+joined against `items`, so the filter pulls the ids across and inlines them. The checklist
+and the **Era** and **Zone** columns all hide themselves until the index exists, so the
+site is perfectly usable without ever running this.
+
+Which columns the results table shows is a per-browser preference (localStorage, via the
+**Columns** button), not part of the search — so it survives sorting and paging without
+riding along in the query string, and nothing about it is stored server-side.
+
+Deliberately **not** era-gated: it describes what an item is, not what the server is
+running, so it does not change when the era switcher does. Re-run it after content
+changes. `ITEM_ERAS_INDEX_ON_BOOT=true` runs it at container start, after `quests:index`.
+
+```bash
+docker exec modern-allaclone php artisan items:index-eras
+```
+
 ## Quest scripts
 
 EQEmu keeps quests as Perl/Lua on disk, so a stock allaclone shows no quest information at
@@ -123,25 +172,43 @@ Two things to know when a reward does not show up:
   `reward_method = 2` (METHODQUEST); at any other reward_method the emulator hands out every id
   in the list to every class.
 
-Page data is cached, so after changing either side the site needs telling. From the stack that
-this browser follows (`akk-stack-live` by default):
+## Rebuilding site data
+
+Five things sit between an edit and what the site shows, and not one of them expires on its own
+in any useful timeframe — each just keeps serving the old answer. `make refresh` is all of them,
+in the only order that works:
 
 ```bash
-make allaclone-refresh      # reindex quest scripts + clear cached pages
+make refresh    # rebuild -> migrate -> quests:index -> items:index-eras -> cache:clear
 ```
 
-`make migrate-up` / `migrate-down` (and the experiments channel) already call that themselves, so
-a dbmate migration needs nothing extra. Run it by hand after editing quest scripts, which the
-database never sees. It no-ops unless this container is attached to the stack being operated on,
-so a dev migration will not claim to have refreshed a browser that follows live.
+The rebuild is first because `opcache.validate_timestamps=0` means the image is the only code
+php reads; the migrate follows it for the volume reason in the note below; the era index reads
+quest rewards, so it follows the quest index; and the page cache is dropped last, so the pages
+rebuilt after it read the new indexes.
+
+Data-only stages are still available one at a time as `make index-quests` / `make index-eras` /
+`make cache-clear`, for when nothing but `peq` or `quests/` moved.
+
+From the stack this browser follows (`akk-stack-live` by default), the same three stages are
+available as `make allaclone-refresh`, which additionally no-ops unless this container is
+attached to the stack being operated on — so a dev migration will not claim to have refreshed a
+browser that follows live. `make migrate-up` / `migrate-down` (and the experiments channel)
+already call it themselves, so a dbmate migration needs nothing extra. Run it by hand after
+editing quest scripts, which the database never sees.
+
+`items:index-eras` is the only stage that costs real time. `ALLACLONE_SKIP_ERAS=1` drops it when
+you know nothing an item's era depends on moved (spawns, merchants, loot, forage/fishing/ground,
+quest rewards, recipes, `zone.expansion`) — opt-in, because it is also the stage that goes stale
+silently.
 
 > Adding a Laravel migration needs one extra step on an existing deployment: the
 > `allaclone-data` volume is mounted **over** `/var/www/html/database`, so migration files baked
-> into the image are invisible to a volume that already exists. Copy it in once, then migrate:
+> into the image are invisible to a volume that already exists. `make migrate` copies them in
+> first, which is the whole difference from `php artisan migrate`:
 >
 > ```bash
-> docker cp database/migrations/<file>.php modern-allaclone:/var/www/html/database/migrations/
-> docker exec modern-allaclone php artisan migrate --force
+> make migrate
 > ```
 >
 > A fresh volume is seeded from the image and does not need this.

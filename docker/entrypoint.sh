@@ -45,4 +45,10 @@ if [ "${QUESTS_INDEX_ON_BOOT:-false}" = "true" ]; then
     php artisan quests:index || echo "[entrypoint] quest index failed (continuing)"
 fi
 
+# After quests:index -- quest rewards are one of the sources the era index reads.
+if [ "${ITEM_ERAS_INDEX_ON_BOOT:-false}" = "true" ]; then
+    echo "[entrypoint] indexing item eras"
+    php artisan items:index-eras || echo "[entrypoint] item era index failed (continuing)"
+fi
+
 exec "$@"

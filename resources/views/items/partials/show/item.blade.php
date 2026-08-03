@@ -53,6 +53,18 @@
 
     <div class="mt-2 space-y-1 text-sm text-gray-300">
         <div>{{ implode(', ', $tags) }}</div>
+        {{-- Earliest era the item can be obtained in, and what dated it. Comes
+             from the era index, so it shows nothing until that has been built. --}}
+        @if (!empty($itemEra))
+            <div>
+                <strong>Era:</strong> {{ App\Support\ContentFilter::label($itemEra->expansion) }}
+                <span class="text-gray-400">&mdash;
+                    {{ App\Models\ItemExpansion::sourceLabel($itemEra->source) }}@if (!empty($eraZone)) in <a
+                        href="{{ route('zones.show', $eraZone->id) }}"
+                        class="link-accent link-hover">{{ $eraZone->long_name }}</a>@endif
+                </span>
+            </div>
+        @endif
         @if ($item->classes > 0)
             <div><strong>Class:</strong> {{ get_class_usable_string($item->classes) }}</div>
         @endif
@@ -323,7 +335,10 @@
                     <span class="text-error">Unknown</span>
                 @endif
                 (
-                @if ($item->clicktype == 4)
+                {{-- Was `clicktype == 4` alone, which is 52 items; the other
+                     8,089 worn clicks are 5s and read as though they fired
+                     from the bags. --}}
+                @if (click_usage($item->clickeffect, $item->clicktype) === 'equipped')
                     Must Equip.
                 @endif
                 @if ($item->casttime > 0)
@@ -403,9 +418,20 @@
             </span>
             </span>
         @endif
-        {{-- food/drink type --}}
-        @if (($item->itemtype == 14 || $item->itemtype == 15) && $item->casttime_)
-            <span class="block mb-2">{{ get_food_drink_desc($item->casttime_, $item->itemtype) }}</span>
+        {{-- how filling the food/drink is, or how potent the alcohol is --}}
+        @if (consumable_strength_band($item->casttime_, $item->itemtype))
+            <span class="block mb-2">
+                @if ($item->itemtype == 38)
+                    <strong>Potency:</strong> {{ $item->casttime_ }}
+                @else
+                    {{ get_food_drink_desc($item->casttime_, $item->itemtype) }}
+                    {{-- the raw number, so two meals can be compared. Not called
+                         "strength" -- that reads as the STR stat listed above. --}}
+                    <span class="text-gray-500">
+                        ({{ $item->itemtype == 14 ? 'Hunger' : 'Thirst' }} restored: {{ $item->casttime_ }})
+                    </span>
+                @endif
+            </span>
         @endif
         {{-- stack size --}}
         @if ($item->stackable > 0 && $item->stacksize > 0)

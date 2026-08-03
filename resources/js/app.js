@@ -125,6 +125,58 @@ Alpine.store('itemSearch', {
     }
 });
 
+// Which columns the item results table leaves out. Stored as the *hidden* set
+// rather than the visible one, so a column added later shows up for everyone
+// instead of being invisible to anyone with a saved list. Kept in localStorage
+// rather than the query string: it is a preference, not part of the search, and
+// every sort and paginate link would otherwise have to carry it.
+Alpine.store('itemColumns', {
+    hidden: [],
+
+    init() {
+        try {
+            const stored = JSON.parse(localStorage.getItem('item_columns_hidden'));
+            this.hidden = Array.isArray(stored) ? stored : [];
+        } catch (e) {
+            this.hidden = [];
+        }
+    },
+
+    visible(column) {
+        return !this.hidden.includes(column);
+    },
+
+    toggle(column) {
+        this.hidden = this.visible(column)
+            ? [...this.hidden, column]
+            : this.hidden.filter(c => c !== column);
+
+        this.save();
+    },
+
+    showAll() {
+        this.hidden = [];
+        this.save();
+    },
+
+    save() {
+        localStorage.setItem('item_columns_hidden', JSON.stringify(this.hidden));
+    },
+
+    // Reassigning style.display rather than toggling a class: '' gives the cell
+    // back to whatever responsive utilities it was rendered with, so a column
+    // that is only shown at lg stays that way once it is switched back on.
+    apply(root) {
+        // Read outside the loop so x-effect still registers the dependency on a
+        // page whose table rendered no toggleable cells at all.
+        const hidden = this.hidden;
+
+        root.querySelectorAll('[data-col]').forEach(cell => {
+            cell.style.display = hidden.includes(cell.dataset.col) ? 'none' : '';
+        });
+    },
+});
+
 Alpine.store('tooltip', {
     content: '',
     visible: false,

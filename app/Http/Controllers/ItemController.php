@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\ItemExpansion;
 use App\Models\Zone;
 use App\Filters\ItemFilter;
 use Illuminate\Http\Request;
@@ -22,6 +23,11 @@ class ItemController extends Controller
             'stat1comp' => 'in:1,2,5',
             'stat2comp' => 'in:1,2,5',
             'stat3comp' => 'in:1,2,5',
+            'expansion' => 'array',
+            'expansion.*' => 'integer|min:0|max:99',
+            // No `type => array` rule: links from when this was a single select
+            // still pass a scalar, and the filter takes either.
+            'type.*' => 'integer',
         ]);
 
         $items = collect();
@@ -35,6 +41,10 @@ class ItemController extends Controller
             $query->select([
                 'id', 'Name', 'icon', 'itemtype', 'ac', 'hp', 'damage', 'delay',
                 'augtype', 'slots', 'bagslots', 'bagwr',
+                // consumables carry their strength in casttime_
+                'casttime_',
+                // where the click fires from, for the Click column
+                'clickeffect', 'clicktype',
                 'mana', 'endur', 'haste', 'aagi', 'acha', 'adex', 'aint', 'asta', 'astr', 'awis',
                 'heroic_agi', 'heroic_cha', 'heroic_dex', 'heroic_int', 'heroic_sta', 'heroic_str', 'heroic_wis',
                 'attack', 'regen', 'manaregen', 'enduranceregen', 'spellshield', 'combateffects', 'shielding',
@@ -45,8 +55,18 @@ class ItemController extends Controller
             $items = $query->sortable()->paginate(50)->withQueryString();
         }
 
+        // Eras live in sqlite and items in peq, so the era column is a second
+        // lookup for the page's fifty rows rather than a join. The zone column
+        // is a third, for the handful of zone names those rows name.
+        $itemEras = ItemExpansion::forItems($items->pluck('id')->all());
+
         return view('items.index', [
             'items' => $items,
+            'itemEras' => $itemEras,
+            'eraZones' => Zone::byShortNames(
+                $itemEras->pluck('zone')->filter()->unique()->values()->all()
+            ),
+            'eraOptions' => ItemExpansion::availableEras(),
             'metaTitle' => config('app.name') . ' - Item Search',
         ]);
     }
@@ -90,6 +110,7 @@ class ItemController extends Controller
             ...$itemCache,
             'questScripts' => $questScripts,
             'tasks' => $tasks,
+            ...$this->eraFor($item),
             'metaTitle' => config('app.name') . ' - Item: ' . $item->Name,
         ]);
     }
@@ -100,8 +121,32 @@ class ItemController extends Controller
         (new ItemViewModel($item))->withEffects();
 
         return response()->json([
-            'html' => view('items.partials.popup', ['item' => $item])->render()
+            'html' => view('items.partials.popup', [
+                'item' => $item,
+                ...$this->eraFor($item),
+            ])->render()
         ]);
+    }
+
+    /**
+     * The item's era and the zone that dated it, for the detail panel.
+     *
+     * Lives in sqlite rather than peq and describes what the item *is*, so --
+     * like the quest scripts -- it is not era-gated and stays out of the
+     * era-keyed cached payload. The zone is a second lookup because the index
+     * stores a short name and cannot join across connections; it is null for
+     * crafted and LDoN-flagged items, which are dated without a place.
+     */
+    private function eraFor(Item $item): array
+    {
+        $itemEra = ItemExpansion::forItem($item->id);
+
+        return [
+            'itemEra' => $itemEra,
+            'eraZone' => $itemEra?->zone
+                ? Zone::forEra(Zone::byShortNames([$itemEra->zone]), $itemEra->zone, $itemEra->expansion)
+                : null,
+        ];
     }
 
     public function drops_by_zone(Item $item)

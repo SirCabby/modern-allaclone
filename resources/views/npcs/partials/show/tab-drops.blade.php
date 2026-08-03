@@ -21,7 +21,12 @@
                 <tbody>
                     @if ($drop->lootdropEntries)
                         @foreach ($drop->lootdropEntries as $loot)
-                            @if(isUndiscoveredItem($loot->item->id, $discoveredItems))
+                            {{-- Loot tables outlive the items they point at: an item
+                                 dropped from `items` leaves its lootdrop entry behind.
+                                 That row is not undiscovered, it is unnameable, so it
+                                 falls through to the "Unknown item" cell below with
+                                 its drop chance intact. --}}
+                            @if($loot->item && isUndiscoveredItem($loot->item->id, $discoveredItems))
                                 <tr>
                                     <td colspan="2">
                                         <span class="text-warning">Undiscovered Item</span>
@@ -37,6 +42,8 @@
                                                 :item_name="$loot->item->Name"
                                                 :item_icon="$loot->item->icon"
                                             />
+                                        @else
+                                            <span class="text-gray-400 italic text-xs">Unknown item</span>
                                         @endif
                                     </div>
                                 </td>

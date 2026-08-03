@@ -35,7 +35,7 @@
             </thead>
             <tbody>
                 @foreach ($npc->merchantlist as $sell)
-                    @if ($npc->class == 61 && $sell->items->ldonsold === 0)
+                    @if ($npc->class == 61 && $sell?->items?->ldonsold === 0)
                         @continue
                     @endif
 

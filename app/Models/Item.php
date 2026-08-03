@@ -21,6 +21,10 @@ class Item extends Model
         'hp',
         'damage',
         'ratio',
+        'potency',
+        // 1 and 3 are the inventory clicks, 4 and 5 the worn ones, so the raw
+        // column already sorts the two groups apart.
+        'clicktype',
         // dynamic columns from stats#comp fields.
         'mana',
         'endur',
@@ -125,6 +129,21 @@ class Item extends Model
         $raw = "CASE WHEN damage = 0 THEN 1e9 ELSE (delay / NULLIF(damage,0)) END";
 
         return $query->orderByRaw($raw . ' ' . $direction)->select('items.*');
+    }
+
+    /**
+     * Food/drink/alcohol strength, which lives in casttime_ -- a column every
+     * other itemtype uses for a click's cast time, so the type check carries
+     * the restriction rather than trusting the search to have narrowed it.
+     * Items without one sort last in both directions: a page of dashes at the
+     * top is not a result either way.
+     */
+    public function potencySortable($query, $direction)
+    {
+        $types = implode(',', array_map('intval', (array) config('everquest.consumable_types')));
+        $raw = "CASE WHEN itemtype IN ({$types}) AND casttime_ > 0 THEN casttime_ END";
+
+        return $query->orderByRaw("{$raw} IS NULL, {$raw} {$direction}");
     }
 
     public function isDiscovered(): bool

@@ -514,6 +514,38 @@ return [
         255 => 'None'
     ],
 
+    /**
+     * `items.clicktype` -- where the item has to be before its click will fire.
+     *
+     * The two Dark Elf masks are the whole distinction: the Guise of the
+     * Deceiver is a 1 and clicks from your bags, the Mask of Deception is a 5
+     * and has to be on your face first. Everything else about them matches,
+     * down to the spell.
+     *
+     * Grouped from the data rather than the client's effect-type enum, which
+     * peq does not follow cleanly. It holds up: all 52 of the type 4s are
+     * equippable and 96% of the type 5s are, while 1 and 3 are mostly potions
+     * and tonics with no slot to be worn in at all. 3 is the charged flavour of
+     * 1 -- 1815 of its 1837 items are consumed by using them -- which the
+     * charges column already says, so it is not a third answer here.
+     */
+    'click_types' => [
+        1 => 'inventory',
+        3 => 'inventory',
+        4 => 'equipped',
+        5 => 'equipped',
+    ],
+
+    'click_type_labels' => [
+        'inventory' => 'Inventory',
+        'equipped'  => 'Equipped',
+    ],
+
+    'click_type_hints' => [
+        'inventory' => 'Clicks from anywhere in your inventory',
+        'equipped'  => 'Must be equipped before it will click',
+    ],
+
     'db_elements' => [
         0 => 'Unresistable',
         1 => 'Magic',
@@ -2873,27 +2905,61 @@ return [
         99999   => 'Unknown 9999',
     ],
 
-    // itemtype 14
-    'food_types' => [
-        'This is a snack!', // 1-5
-        'This is a meal!', // 6-20
-        'This is a hearty meal!', // 21-30
-        'This is a banquet sized meal!', // 31-40
-        'This is a feast!', // 41-50
-        'This is a enduring meal!', // 51-60
-        'This is a miraculous meal!', // 70+
+    // Consumables keep their strength in items.casttime_: how filling a food
+    // (itemtype 14) or drink (15) is, and how potent an alcohol (38) is. The
+    // bands below back the blurb on the item page, the strength shown in the
+    // search results and the strength filter -- the key is what the filter
+    // puts on the query string, and a null max is open ended.
+    //
+    // Alcohol has no wording of its own in game, so it is shown as a raw
+    // potency and only borrows the bands for filtering.
+    'consumable_strengths' => [
+        1 => [
+            'min' => 1, 'max' => 5,
+            'search' => 'Snack / Whistle Wetter',
+            'food'  => ['label' => 'Snack', 'desc' => 'This is a snack!'],
+            'drink' => ['label' => 'Whistle Wetter', 'desc' => 'This is a whistle wetter!'],
+        ],
+        2 => [
+            'min' => 6, 'max' => 20,
+            'search' => 'Meal / Drink',
+            'food'  => ['label' => 'Meal', 'desc' => 'This is a meal!'],
+            'drink' => ['label' => 'Drink', 'desc' => 'This is a drink!'],
+        ],
+        3 => [
+            'min' => 21, 'max' => 30,
+            'search' => 'Hearty Meal / Refreshing Drink',
+            'food'  => ['label' => 'Hearty Meal', 'desc' => 'This is a hearty meal!'],
+            'drink' => ['label' => 'Refreshing Drink', 'desc' => 'This is a refreshing drink!'],
+        ],
+        4 => [
+            'min' => 31, 'max' => 40,
+            'search' => 'Banquet / Lasting Drink',
+            'food'  => ['label' => 'Banquet', 'desc' => 'This is a banquet sized meal!'],
+            'drink' => ['label' => 'Lasting Drink', 'desc' => 'This is a lasting drink!'],
+        ],
+        5 => [
+            'min' => 41, 'max' => 50,
+            'search' => 'Feast / Flowing Drink',
+            'food'  => ['label' => 'Feast', 'desc' => 'This is a feast!'],
+            'drink' => ['label' => 'Flowing Drink', 'desc' => 'This is a flowing drink!'],
+        ],
+        6 => [
+            'min' => 51, 'max' => 60,
+            'search' => 'Enduring',
+            'food'  => ['label' => 'Enduring Meal', 'desc' => 'This is a enduring meal!'],
+            'drink' => ['label' => 'Enduring Drink', 'desc' => 'This is a enduring drink!'],
+        ],
+        7 => [
+            'min' => 61, 'max' => null,
+            'search' => 'Miraculous',
+            'food'  => ['label' => 'Miraculous Meal', 'desc' => 'This is a miraculous meal!'],
+            'drink' => ['label' => 'Miraculous Drink', 'desc' => 'This is a miraculous drink!'],
+        ],
     ],
 
-    // itemtype 15
-    'drink_types' => [
-        'This is a whistle wetter!', // 1-5
-        'This is a drink!', // 6-20
-        'This is a refreshing drink!', // 21-30,
-        'This is a lasting drink!', // 31-40
-        'This is a flowing drink!', // 41
-        'This is a enduring drink!', // 51-60
-        'This is a miraculous drink!', // 70+
-    ],
+    // itemtypes whose casttime_ is a consumption strength rather than a cast time
+    'consumable_types' => [14, 15, 38],
 
     // object containers
     'object_containers' => [

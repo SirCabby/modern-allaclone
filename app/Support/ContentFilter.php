@@ -106,18 +106,29 @@ class ContentFilter
             });
         }
 
-        self::applyFlags($query, $prefix);
+        self::applyFlags($query, $table);
 
         return $query;
     }
 
     /**
-     * Content flags gate seasonal and opt-in content (frostfell, the classic
-     * old-world drop set, ...) independently of the expansion number, so they
-     * apply even in "all eras" mode.
+     * The content-flag half of the criteria, on its own.
+     *
+     * Flags gate seasonal and opt-in content (frostfell, the classic old-world
+     * drop set, the parked copies of a revamped zone's spawns) independently of
+     * the expansion number, so they apply even in "all eras" mode -- and to
+     * anything that asks what the server holds at all rather than what is open
+     * this era, which is why this is public.
+     *
+     * A flag name that is not in the content_flags table matches neither list,
+     * so the row is hidden. That is the server's behaviour too: the criteria are
+     * built from the table, and a name it has never heard of is never enabled.
+     *
+     * @param  string  $table  table (or alias) the columns live on; '' for unqualified
      */
-    private static function applyFlags(EloquentBuilder|QueryBuilder|Relation $query, string $prefix): void
+    public static function applyFlags(EloquentBuilder|QueryBuilder|Relation $query, string $table = ''): EloquentBuilder|QueryBuilder|Relation
     {
+        $prefix = $table === '' ? '' : $table . '.';
         $enabled = self::enabledFlags();
         $disabled = self::disabledFlags();
 
@@ -149,6 +160,8 @@ class ContentFilter
                 });
             }
         });
+
+        return $query;
     }
 
     /**

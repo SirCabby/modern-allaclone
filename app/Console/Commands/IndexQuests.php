@@ -97,13 +97,13 @@ class IndexQuests extends Command
         $this->newLine(2);
 
         $this->line('Validating extracted IDs against peq...');
-        $validItems = $this->validIds('items', collect($itemRefs)->flatMap(fn ($m) => array_keys($m))->unique()->all());
+        $validItems = $this->validIds('items', collect($itemRefs)->flatMap(fn ($refs) => array_column($refs, 'item_id'))->unique()->all());
         $validNpcs = $this->validIds('npc_types', collect($npcRefs)->flatten()->unique()->all());
         $validTasks = $this->validIds('tasks', collect($taskRefs)->flatMap(fn ($m) => array_keys($m))->unique()->all());
 
         $this->line(sprintf(
             'Item refs: %d candidates -> %d real items | NPC refs: %d -> %d | Task refs: %d -> %d',
-            collect($itemRefs)->flatMap(fn ($m) => array_keys($m))->unique()->count(),
+            collect($itemRefs)->flatMap(fn ($refs) => array_column($refs, 'item_id'))->unique()->count(),
             count($validItems),
             collect($npcRefs)->flatten()->unique()->count(),
             count($validNpcs),
@@ -125,13 +125,13 @@ class IndexQuests extends Command
             $npcRows = [];
             $taskRows = [];
 
-            foreach ($itemRefs as $path => $map) {
+            foreach ($itemRefs as $path => $refs) {
                 $scriptId = $ids[$path] ?? null;
                 if (!$scriptId) continue;
 
-                foreach ($map as $itemId => $kind) {
-                    if (isset($validItems[$itemId])) {
-                        $itemRows[] = ['quest_script_id' => $scriptId, 'item_id' => $itemId, 'kind' => $kind];
+                foreach ($refs as $ref) {
+                    if (isset($validItems[$ref['item_id']])) {
+                        $itemRows[] = ['quest_script_id' => $scriptId] + $ref;
                     }
                 }
             }
@@ -313,63 +313,280 @@ class IndexQuests extends Command
     }
 
     /**
-     * @return array<int, string> item_id => kind
+     * Item references, each tagged with the turn-in that gates it.
+     *
+     * A script is one file per NPC, not one per quest: the Skyshrine armourer
+     * runs seven quests out of a single EVENT_ITEM and the Ocean of Tears robe
+     * has two dozen interchangeable turn-ins. What a reward *costs* therefore
+     * has no answer at script level, only per branch, and the only structure a
+     * regex can see is source order -- a reward belongs to the check most
+     * recently opened above it, and a sub/function boundary closes whatever was
+     * open. Branch 0 is "under no check at all": a hail that hands you a note,
+     * or a turn-in table built too far from its call to pair up.
+     *
+     * @return array<int, array{item_id: int, kind: string, branch: int}>
      */
     private function extractItems(string $body): array
     {
-        $found = [];
+        $rows = [];
+        $seen = [];
 
-        $add = function (array $ids, string $kind) use (&$found) {
-            foreach ($ids as $id) {
-                $id = (int) $id;
-                if ($id <= 0) continue;
-                // handin beats reward beats mentioned
-                $rank = ['handin' => 3, 'reward' => 2, 'mentioned' => 1];
-                if (!isset($found[$id]) || $rank[$kind] > $rank[$found[$id]]) {
-                    $found[$id] = $kind;
-                }
+        $add = function ($id, string $kind, int $branch) use (&$rows, &$seen) {
+            $id = (int) $id;
+            $key = "{$kind}:{$branch}:{$id}";
+
+            if ($id <= 0 || isset($seen[$key])) {
+                return;
             }
+
+            $seen[$key] = true;
+            $rows[] = ['item_id' => $id, 'kind' => $kind, 'branch' => $branch];
         };
 
-        // Turn-in tables: lua `{item1 = 1234, item2 = 5678}`
-        if (preg_match_all('/\bitem\d*\s*=\s*(\d+)/i', $body, $m)) {
-            $add($m[1], 'handin');
+        $branches = $this->turnInBranches($body);
+
+        foreach ($branches as $branch) {
+            foreach ($branch['items'] as $id) {
+                $add($id, 'handin', $branch['branch']);
+            }
         }
 
-        // Perl handins: `plugin::check_handin(\%itemcount, 1234 => 1)`
-        if (preg_match_all('/check_handin\s*\((.*?)\)/is', $body, $blocks)) {
-            foreach ($blocks[1] as $block) {
-                if (preg_match_all('/(\d+)\s*=>\s*\d+/', $block, $mm)) {
-                    $add($mm[1], 'handin');
+        // Turn-in tables that sit outside any call we could pair them with --
+        // built into a variable, or passed through a helper. They are real
+        // handins, they just cannot gate anything.
+        if (preg_match_all('/\bitem\d*\s*=\s*(\d+)/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+            foreach ($m[1] as [$id, $at]) {
+                if (!$this->withinBranch($at, $branches)) {
+                    $add($id, 'handin', 0);
                 }
             }
         }
 
-        // Lua turn-ins spelled out as a table literal
-        if (preg_match_all('/check_turn_in\s*\((.*?)\)/is', $body, $blocks)) {
-            foreach ($blocks[1] as $block) {
-                if (preg_match_all('/(\d+)/', $block, $mm)) {
-                    $add($mm[1], 'handin');
-                }
-            }
+        $boundaries = $this->handlerBoundaries($body);
+
+        foreach ($this->rewardReferences($body) as [$id, $at]) {
+            $add($id, 'reward', $this->branchAt($at, $branches, $boundaries));
         }
 
-        // Rewards
-        if (preg_match_all('/summonitem\s*\(\s*(\d+)/i', $body, $m)) {
-            $add($m[1], 'reward');
-        }
-        if (preg_match_all('/\badditem\s*\(\s*(\d+)/i', $body, $m)) {
-            $add($m[1], 'reward');
-        }
+        // The tree's own convention: a `-- items: 1,2,3` / `# items: 1,2,3`
+        // header. It is a backstop for what the patterns above cannot see, so
+        // it only speaks for items they did not already find.
+        $claimed = array_flip(array_column($rows, 'item_id'));
 
-        // The tree's own convention: a `-- items: 1,2,3` / `# items: 1,2,3` header.
         if (preg_match_all('/^\s*(?:--|#)\s*items?\s*:\s*([\d,\s]+)$/mi', $body, $m)) {
             foreach ($m[1] as $list) {
-                $add(preg_split('/[,\s]+/', trim($list), -1, PREG_SPLIT_NO_EMPTY), 'mentioned');
+                foreach (preg_split('/[,\s]+/', trim($list), -1, PREG_SPLIT_NO_EMPTY) as $id) {
+                    if (!isset($claimed[(int) $id])) {
+                        $add($id, 'mentioned', 0);
+                    }
+                }
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Every turn-in check in the script, numbered from 1 in source order.
+     *
+     * Only the keyed forms count as items: perl writes `1234 => 1` and lua
+     * `{item1 = 1234}`, while a bare number in the same call is a quantity or,
+     * in `{gold = 25000}`, a pile of coin that happens to look like an item id.
+     *
+     * @return array<int, array{branch: int, offset: int, end: int, items: int[]}>
+     */
+    private function turnInBranches(string $body): array
+    {
+        if (!preg_match_all('/\b(?:check_handin|check_turn_in)\s*\(/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+            return [];
+        }
+
+        $branches = [];
+
+        foreach ($m[0] as [$match, $at]) {
+            $open = $at + strlen($match) - 1;
+            $args = $this->callArguments($body, $open);
+
+            if ($args === null) {
+                continue;
+            }
+
+            $items = [];
+
+            foreach (['/(\d+)\s*=>\s*\d+/', '/\bitem\d*\s*=\s*(\d+)/i'] as $re) {
+                if (preg_match_all($re, $args, $mm)) {
+                    $items = array_merge($items, array_map('intval', $mm[1]));
+                }
+            }
+
+            if (!$items) {
+                continue;
+            }
+
+            $branches[] = [
+                'branch' => count($branches) + 1,
+                'offset' => $at,
+                'end' => $open + strlen($args) + 2,
+                'items' => array_values(array_unique($items)),
+            ];
+        }
+
+        return $branches;
+    }
+
+    /**
+     * Items a script gives out, with the offset each is named at.
+     *
+     * `QuestReward` comes in two shapes and is worth the trouble: it is how a
+     * thousand of the lua scripts pay out, and summonitem() alone misses all
+     * of them.
+     *
+     * @return array<int, array{0: int, 1: int}> [item_id, offset]
+     */
+    private function rewardReferences(string $body): array
+    {
+        $found = [];
+
+        if (preg_match_all('/\b(?:summonitem|additem)\s*\(\s*(\d+)/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+            foreach ($m[1] as [$id, $at]) {
+                $found[] = [(int) $id, $at];
+            }
+        }
+
+        if (!preg_match_all('/\bQuestReward\s*\(/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+            return $found;
+        }
+
+        foreach ($m[0] as [$match, $at]) {
+            $args = $this->callArguments($body, $at + strlen($match) - 1);
+
+            if ($args === null) {
+                continue;
+            }
+
+            // Table form: QuestReward(npc, {itemid = 1234}) / {items = {1, 2}}
+            if (str_contains($args, '{')) {
+                foreach (['/\bitemid\s*=\s*(\d+)/i', '/\bitems\s*=\s*\{([\d,\s]+)\}/i'] as $re) {
+                    if (preg_match_all($re, $args, $mm)) {
+                        foreach ($mm[1] as $list) {
+                            foreach (preg_split('/[,\s]+/', $list, -1, PREG_SPLIT_NO_EMPTY) as $id) {
+                                $found[] = [(int) $id, $at];
+                            }
+                        }
+                    }
+                }
+
+                continue;
+            }
+
+            // Positional: QuestReward(npc, copper, silver, gold, platinum, item, exp).
+            // Anything but a literal in the item slot is a variable or a random
+            // pick, which names no single item.
+            $slot = trim($this->splitArguments($args)[5] ?? '');
+
+            if (ctype_digit($slot)) {
+                $found[] = [(int) $slot, $at];
             }
         }
 
         return $found;
+    }
+
+    /** Offsets where a new sub / function starts, closing any open turn-in. */
+    private function handlerBoundaries(string $body): array
+    {
+        preg_match_all('/^[ \t]*(?:local\s+)?(?:sub|function)\b/mi', $body, $m, PREG_OFFSET_CAPTURE);
+
+        return array_column($m[0] ?? [], 1);
+    }
+
+    /** The branch a reward at this offset sits under, or 0 for none. */
+    private function branchAt(int $offset, array $branches, array $boundaries): int
+    {
+        $open = null;
+
+        foreach ($branches as $branch) {
+            if ($branch['offset'] >= $offset) {
+                break;
+            }
+
+            $open = $branch;
+        }
+
+        if ($open === null) {
+            return 0;
+        }
+
+        foreach ($boundaries as $at) {
+            if ($at > $open['offset'] && $at < $offset) {
+                return 0;
+            }
+        }
+
+        return $open['branch'];
+    }
+
+    private function withinBranch(int $offset, array $branches): bool
+    {
+        foreach ($branches as $branch) {
+            if ($offset >= $branch['offset'] && $offset <= $branch['end']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The text between a call's parentheses. Counting depth rather than
+     * stopping at the first ')' is what keeps `{items = {1, 2}}` and
+     * `eq.ExpHelper(15)` from truncating the argument list.
+     */
+    private function callArguments(string $body, int $open): ?string
+    {
+        $depth = 0;
+        $length = strlen($body);
+
+        for ($i = $open; $i < $length; $i++) {
+            $char = $body[$i];
+
+            if ($char === '(') {
+                $depth++;
+            } elseif ($char === ')' && --$depth === 0) {
+                return substr($body, $open + 1, $i - $open - 1);
+            }
+        }
+
+        return null;
+    }
+
+    /** Top-level comma split; nested calls and tables stay in one piece. */
+    private function splitArguments(string $args): array
+    {
+        $parts = [];
+        $current = '';
+        $depth = 0;
+
+        foreach (str_split($args) as $char) {
+            if ($char === ',' && $depth === 0) {
+                $parts[] = $current;
+                $current = '';
+
+                continue;
+            }
+
+            if ($char === '(' || $char === '{' || $char === '[') {
+                $depth++;
+            } elseif ($char === ')' || $char === '}' || $char === ']') {
+                $depth--;
+            }
+
+            $current .= $char;
+        }
+
+        $parts[] = $current;
+
+        return $parts;
     }
 
     /**

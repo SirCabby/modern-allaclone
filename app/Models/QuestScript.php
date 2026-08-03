@@ -41,6 +41,30 @@ class QuestScript extends Model
         return $this->hasMany(QuestScriptItem::class);
     }
 
+    /**
+     * How this script treats an item, for the badge on the item page.
+     *
+     * One script can reference the same item several ways -- an NPC that takes
+     * a breastplate and later hands it back has it as both -- and once turn-ins
+     * are grouped by branch it can do so several times over. Hand-in wins,
+     * because it is the more specific claim.
+     *
+     * Reads whatever `items` is loaded with, so scope the eager load to the
+     * item you are asking about (see forItem()).
+     */
+    public function kindOfItem(): string
+    {
+        $kinds = $this->items->pluck('kind');
+
+        foreach (['handin', 'reward'] as $kind) {
+            if ($kinds->contains($kind)) {
+                return $kind;
+            }
+        }
+
+        return 'mentioned';
+    }
+
     public function npcs(): HasMany
     {
         return $this->hasMany(QuestScriptNpc::class);

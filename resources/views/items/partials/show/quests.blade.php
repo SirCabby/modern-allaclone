@@ -4,7 +4,7 @@
     <div class="divider">This item appears in quest scripts</div>
     <ul role="list" class="list bg-base-300 divide-y divide-base-200">
         @foreach ($questScripts as $script)
-            @php $kind = $script->items->first()?->kind; @endphp
+            @php $kind = $script->kindOfItem(); @endphp
             <li class="flex justify-between items-center gap-x-6 px-3 py-2">
                 <div class="min-w-0 flex-auto">
                     <p class="text-sm/6 font-semibold text-neutral-content">
