@@ -43,7 +43,9 @@ use Illuminate\Support\Facades\DB;
  * Content flags are a different question and do apply -- a spawn behind a flag
  * nobody has switched on is not content this server holds in any era, and
  * reading one as a source is how the Apprentice Robe ended up Classic off a
- * `nektulos_classic_relocated` spawn that never appears in the world.
+ * `nektulos_classic_relocated` spawn that never appears in the world. Quests
+ * are held to it through the NPC running the script (see blockedQuestScripts),
+ * since a Perl file on disk carries no flag of its own.
  *
  * Quests and recipes run to a fixpoint together: what a quest costs is often
  * crafted, and what a recipe needs is often quested.
@@ -140,6 +142,9 @@ class IndexItemEras extends Command
      */
     private array $zone = [];
 
+    /** quest_script_ids whose NPC never spawns; see blockedQuestScripts(). */
+    private array $blockedScripts = [];
+
     public function handle(): int
     {
         $this->maxEra = max(array_keys(config('everquest.expansions')));
@@ -155,6 +160,8 @@ class IndexItemEras extends Command
         $this->info(sprintf('Deriving item eras from %d zones', count($zoneEras)));
 
         $this->indexWorldPlacement();
+
+        $this->blockedScripts = $this->blockedQuestScripts();
 
         $rewards = $this->loadQuestRewards($zoneEras);
         $recipes = $this->loadRecipes();
@@ -405,6 +412,92 @@ class IndexItemEras extends Command
     }
 
     /**
+     * Quest scripts that never run, because the NPC holding them never spawns.
+     *
+     * Every spawn-based source goes through ContentFilter already -- a spawn
+     * behind a flag nobody has switched on is not content this server holds in
+     * any era. The quest sources did not, because they come off the on-disk
+     * script index rather than the spawn tables, and nothing on disk knows
+     * about a content flag. That is how the Nights of the Dead pie toss in
+     * Toxxulia Forest dated a Tasty Squash Pie as Classic on a server where
+     * `peq_halloween` has been off the entire time, and the same event's mount
+     * race in Nektulos did the same for a bridle.
+     *
+     * The test is by *name*, not by the id quests:index resolved to, and not
+     * per zone either. Both of those were tried and both are wrong:
+     *
+     *   by id      peq parks duplicate rows of an NPC beside the live one
+     *              (`takp_import_parked_era_dupe` and friends). Ask whether the
+     *              resolved id can spawn and 37 scripts come back blocked whose
+     *              live twin is standing in the zone running that very file.
+     *
+     *   per zone   a seasonal script is copied into every zone folder the event
+     *              visits, and only one of them holds the spawn. Marta Stalwart
+     *              exists once, in `tox` behind the flag, but her script is also
+     *              in `toxxulia` -- the Serpent's Spine revamp of the same
+     *              forest, where nobody of that name is placed at all. Scoping
+     *              the question to the folder let that copy through, and the
+     *              squash pie came back as Serpent's Spine instead of Classic:
+     *              a different wrong answer for an item you still cannot get.
+     *
+     * So: placed somewhere, reachable nowhere. Left alone is any script whose
+     * NPC never resolved or was never named, and any name spawn2 does not place
+     * at all -- fifteen hundred quest givers are put in the world by another
+     * script, and blocking those would cost real coverage to catch nothing.
+     *
+     * @return int[] quest_script_ids
+     */
+    private function blockedQuestScripts(): array
+    {
+        $spawns = fn () => DB::connection('eqemu')->table('spawnentry as se')
+            ->join('spawn2 as s2', 's2.spawngroupID', '=', 'se.spawngroupID')
+            ->join('npc_types as n', 'n.id', '=', 'se.npcID')
+            ->distinct()
+            ->select('n.name');
+
+        // Names spawn2 places anywhere at all, and the subset of those that can
+        // really turn up. Absence from the first set is not evidence of
+        // anything: fifteen hundred quest givers are put in the world by
+        // another script rather than by spawn2, and have no row here to pass or
+        // fail. Absence from the second, having been in the first, is.
+        $index = fn ($rows) => array_fill_keys(
+            $rows->map(fn ($row) => strtolower($row->name))->all(),
+            true
+        );
+
+        $placed = $index($spawns()->get());
+        $live = $index(
+            ContentFilter::applyFlags(ContentFilter::applyFlags($spawns(), 'se'), 's2')
+                ->where('se.chance', '>', 0)
+                ->get()
+        );
+
+        $blocked = [];
+
+        DB::table('quest_scripts')
+            ->whereNotNull('npc_id')
+            ->whereNotNull('npc_name')
+            ->select('id', 'npc_name')
+            ->orderBy('id')
+            ->chunk(2000, function ($scripts) use ($placed, $live, &$blocked) {
+                foreach ($scripts as $script) {
+                    $name = strtolower($script->npc_name);
+
+                    if (isset($placed[$name]) && !isset($live[$name])) {
+                        $blocked[] = (int) $script->id;
+                    }
+                }
+            });
+
+        $this->line(sprintf(
+            '  %-9s %6d scripts skipped (their NPC is placed, but never reachable)',
+            'blocked', count($blocked)
+        ));
+
+        return $blocked;
+    }
+
+    /**
      * Every reward a quest script hands out, with what it costs, from the
      * on-disk index the quests:index command builds.
      *
@@ -439,6 +532,8 @@ class IndexItemEras extends Command
         DB::table('quest_script_items as qsi')
             ->join('quest_scripts as qs', 'qs.id', '=', 'qsi.quest_script_id')
             ->where('qsi.kind', 'reward')
+            ->when($this->blockedScripts, fn ($query) => $query
+                ->whereIntegerNotInRaw('qsi.quest_script_id', $this->blockedScripts))
             ->select('qsi.quest_script_id', 'qsi.branch', 'qsi.item_id', 'qs.zone', 'qs.relative_path')
             ->orderBy('qsi.id')
             ->chunk(5000, function ($rows) use ($zoneEras, $costs, &$rewards) {
@@ -494,6 +589,8 @@ class IndexItemEras extends Command
         DB::table('quest_script_items as qsi')
             ->join('quest_scripts as qs', 'qs.id', '=', 'qsi.quest_script_id')
             ->where('qsi.kind', $kind)
+            ->when($this->blockedScripts, fn ($query) => $query
+                ->whereIntegerNotInRaw('qsi.quest_script_id', $this->blockedScripts))
             ->select('qsi.id', 'qsi.item_id', 'qs.zone', 'qs.relative_path')
             ->orderBy('qsi.id')
             ->chunk(2000, function ($rows) use ($zoneEras, $source, $skip, &$matched) {
