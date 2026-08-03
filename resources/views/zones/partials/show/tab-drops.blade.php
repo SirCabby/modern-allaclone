@@ -32,7 +32,7 @@
                             @if ($drop['item']['bagslots'] > 0)
                                 Bag
                             @else
-                                {{ $item_type[$drop['item']['itemtype']] }}
+                                {{ implode(', ', \App\Support\ItemCategories::labels($drop['item'])) }}
                             @endif
                         </td>
                         <td class="text-nowrap">

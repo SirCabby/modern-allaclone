@@ -17,7 +17,6 @@
         @php
             $npc_class = config('everquest.npc_class');
             $npc_race = config('everquest.db_races');
-            $item_type = config('everquest.item_types');
         @endphp
 
         <div class="card mb-6">

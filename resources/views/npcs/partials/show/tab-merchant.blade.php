@@ -73,7 +73,16 @@
                         <td>
                             <div class="flex flex-col">
                                 @if ($sell->items)
-                                    {{ config('everquest.item_types.' . $sell->items->itemtype) }}
+                                    {{-- Primary category, with anything the item
+                                         also is underneath -- same rules as the
+                                         item search Type column. --}}
+                                    @php $categories = \App\Support\ItemCategories::labels($sell->items); @endphp
+                                    {{ array_shift($categories) }}
+                                    @if ($categories)
+                                        <span class="text-xs text-gray-500 truncate">
+                                            {{ implode(', ', $categories) }}
+                                        </span>
+                                    @endif
                                     {{-- augment --}}
                                     @if ($sell->items->itemtype == 54)
                                         @php

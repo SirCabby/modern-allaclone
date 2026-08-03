@@ -25,7 +25,7 @@
                         @if ($item->bagslots > 0)
                             Bag
                         @else
-                            {{ $item_type[$item->itemtype] }}
+                            {{ implode(', ', \App\Support\ItemCategories::labels($item)) }}
                         @endif
                     </div>
                 </a>

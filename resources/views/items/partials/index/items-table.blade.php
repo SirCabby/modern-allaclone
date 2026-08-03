@@ -130,7 +130,19 @@
                     </td>
                     <td data-col="type">
                         <div class="flex flex-col">
-                            {{ config('everquest.item_types.' . $item->itemtype) }}
+                            {{-- Every category the item answers to, not the one
+                                 number itemtype has room for: the Guise of the
+                                 Deceiver is a face-slot mask that calls itself
+                                 1H Slashing, and Illusion is only ever a thing
+                                 an item also does. Same rules the search just
+                                 matched on. --}}
+                            @php $categories = \App\Support\ItemCategories::labels($item); @endphp
+                            {{ array_shift($categories) }}
+                            @if ($categories)
+                                <span class="text-xs text-gray-500 truncate">
+                                    {{ implode(', ', $categories) }}
+                                </span>
+                            @endif
                             {{-- augment --}}
                             @if ($item->itemtype == 54)
                                 @php

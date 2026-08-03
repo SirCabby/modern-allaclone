@@ -3,10 +3,9 @@
 namespace App\Filters;
 
 use App\Models\ItemExpansion;
+use App\Support\ItemCategories;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class ItemFilter
 {
@@ -78,73 +77,23 @@ class ItemFilter
     protected const BAG_TYPES = [555, 556, 557];
 
     /**
-     * Illusion is not a category, it is a flag -- and `itemtype` has one slot,
-     * so wearing it costs the item whatever it actually was. The Mask of
-     * Deception is a face-slot, 4 AC mask that reads as type 69 and therefore
-     * is not armour; the Guise of the Deceiver is the same mask with the same
-     * click and reads as type 0, 1H Slashing, on an item that does no damage.
-     * Neither number describes the item, and between them they do not even
-     * agree.
-     *
-     * So the picker's Illusion entry does not mean `itemtype = 69`. It means
-     * the item casts an illusion -- which is checkable, and which the two masks
-     * finally answer the same way -- with the flag kept as an OR for the
-     * handful whose spell this server does not have. And because the flag is
-     * secondary, an illusion item that is worn like armour answers Armour too:
-     * the disguise is a thing the mask does, not a thing it is instead of being
-     * a mask.
-     *
-     * Mount (68) is left alone deliberately. It is the same kind of flag, but
-     * the items wearing it sit in the ammo slot as keyring entries rather than
-     * displacing a real armour slot, so there is no category underneath it to
-     * give back.
+     * The category rules live in ItemCategories, so the picker and the Type
+     * column on the results it returns cannot disagree about what an item is.
+     * Everything here is that definition expressed as SQL.
      */
-    protected const TYPE_ILLUSION = 69;
+    protected const TYPE_ILLUSION = ItemCategories::TYPE_ILLUSION;
 
-    protected const TYPE_ARMOR = 10;
+    protected const TYPE_ARMOR = ItemCategories::TYPE_ARMOR;
 
-    /** Spell effect 58 is the illusion itself. */
-    protected const SPA_ILLUSION = 58;
+    protected const WIELD_SLOTS = ItemCategories::WIELD_SLOTS;
 
-    /**
-     * Item columns holding a spell the item casts on you. `scrolleffect` is
-     * deliberately absent: a scroll that teaches Illusion: Skeleton is a spell
-     * to learn, not a disguise to wear, and there are 114 of them.
-     */
-    protected const ILLUSION_EFFECT_COLUMNS = ['clickeffect', 'worneffect', 'proceffect'];
+    protected const ARMOR_SLOTS = ItemCategories::ARMOR_SLOTS;
 
-    /**
-     * Where an item goes on the body, which is the one thing about a mistyped
-     * item that is never a lie: the Guise of the Deceiver calls itself 1H
-     * Slashing and the Mask of Deception calls itself Illusion, and both are
-     * face-slot masks with 4 AC and the same click. `slots` says so; neither
-     * `itemtype` does.
-     *
-     * Damage looked like the better test and is not. Plenty of real weapons
-     * carry none -- the Combine Scout's Broadsword and the Dwarf Mining Pick
-     * are both 0 in peq -- so reading a weapon as "does damage" throws away
-     * about 155 of them. What actually separates a sword from a mask is that
-     * you hold one and wear the other.
-     */
-    protected const WIELD_SLOTS = 2048       // range
-        | 8192                               // primary
-        | 16384                              // secondary
-        | 4194304;                           // ammo
+    protected const WEAPON_TYPES = ItemCategories::WEAPON_TYPES;
 
-    /** The 23 real slots, less the charm slot and the four above. */
-    protected const ARMOR_SLOTS = 0x7FFFFF & ~(1 | self::WIELD_SLOTS);
+    protected const MISTYPED_ARMOR_TYPES = ItemCategories::MISTYPED_ARMOR_TYPES;
 
-    /** Types that carry no weapon slot honestly. */
-    protected const WEAPON_TYPES = [0, 1, 2, 3, 4, 5, 7, 19, 27, 35, 45];
-
-    /**
-     * Types whose claim to not be armour is worth re-checking against `slots`:
-     * the weapon types, which say nothing true about an item that cannot be
-     * held, and the illusion flag, which overwrote whatever was there before.
-     * Everything else keeps its own entry in the picker and is left alone --
-     * Jewelry and Charm are worn too, and they are not lying about it.
-     */
-    protected const MISTYPED_ARMOR_TYPES = [...self::WEAPON_TYPES, self::TYPE_ILLUSION];
+    protected const ILLUSION_EFFECT_COLUMNS = ItemCategories::ILLUSION_EFFECT_COLUMNS;
 
     /**
      * Item type picker. Multiple ticked types match items of any of them, so
@@ -247,7 +196,7 @@ class ItemFilter
      */
     protected function illusionItems($query)
     {
-        $spells = $this->illusionSpellIds();
+        $spells = ItemCategories::illusionSpellIds();
 
         return $query->where(function ($group) use ($spells) {
             $group->where('itemtype', self::TYPE_ILLUSION);
@@ -256,31 +205,6 @@ class ItemFilter
                 $group->orWhereIntegerInRaw($column, $spells);
             }
         });
-    }
-
-    /**
-     * Every spell id that turns you into something else.
-     *
-     * Effect 58 is the illusion, and it is not always the headline -- Ignite
-     * Bones carries it in the second of a spell's twelve effect slots, behind
-     * the damage -- so this reads all twelve rather than trusting effectid1.
-     *
-     * Pulled across and inlined rather than joined, for the same reason
-     * expansion() does it: peq is a second connection. One scan of spells_new
-     * an hour beats a subquery on every search.
-     */
-    protected function illusionSpellIds(): array
-    {
-        return Cache::remember('items.illusion_spells', 3600, fn () => DB::connection('eqemu')
-            ->table('spells_new')
-            ->where(function ($query) {
-                foreach (range(1, 12) as $slot) {
-                    $query->orWhere("effectid{$slot}", self::SPA_ILLUSION);
-                }
-            })
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all());
     }
 
     protected function bagslots($value)

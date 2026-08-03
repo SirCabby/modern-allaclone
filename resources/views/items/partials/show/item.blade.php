@@ -1,20 +1,15 @@
-@switch($item->itemtype)
-    @case(0)
-    @case(2)
+@php
+    // Every category the item answers to, rather than the one number itemtype
+    // has room for: the Guise of the Deceiver is a face-slot mask filed as 1H
+    // Slashing, and Illusion is only ever something an item also does. Same
+    // rules the search matches on, so a result and the page it links to agree.
+    $primaryType = \App\Support\ItemCategories::primaryType($item);
+    $itemCategories = \App\Support\ItemCategories::labels($item);
 
-    @case(3)
-    @case(42)
-
-    @case(1)
-    @case(4)
-
-    @case(35)
-        @php $itemTypePrefix = 'Skill'; @endphp
-    @break
-
-    @default
-        @php $itemTypePrefix = 'Item Type'; @endphp
-@endswitch
+    // A weapon is a skill you use; everything else is a kind of thing you have.
+    // Keyed off the corrected type, so a mask stops being asked what skill it is.
+    $itemTypePrefix = in_array($primaryType, [0, 1, 2, 3, 4, 35, 42], true) ? 'Skill' : 'Item Type';
+@endphp
 
 @php
     $tags = [];
@@ -40,8 +35,7 @@
         $tags[] = 'Attuneable';
     }
 
-    $itemTypes = config('everquest.item_types');
-    $itemTypeName = $itemTypes[$item['itemtype']] ?? null;
+    $itemTypeName = implode(', ', $itemCategories);
     $itemValue = calculate_item_price($item->price);
 @endphp
 

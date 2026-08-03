@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ItemCategories;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,8 +24,9 @@ class Merchantlist extends Model
     {
         return $this->hasOne(Item::class, 'id', 'item')
             ->select([
-                'id', 'Name', 'icon', 'itemtype', 'slots', 'bagslots', 'bagwr', 'augtype', 'price',
+                'id', 'Name', 'icon', 'bagslots', 'bagwr', 'augtype', 'price',
                 'pointtype', 'ldontheme', 'ldonsold', 'ldonprice',
+                ...ItemCategories::REQUIRED_COLUMNS,
             ]);
     }
 }

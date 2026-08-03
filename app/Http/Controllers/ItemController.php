@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\QuestScript;
 use App\Models\Task;
 use App\Support\ContentFilter;
+use App\Support\ItemCategories;
 
 class ItemController extends Controller
 {
@@ -39,12 +40,15 @@ class ItemController extends Controller
             }
 
             $query->select([
-                'id', 'Name', 'icon', 'itemtype', 'ac', 'hp', 'damage', 'delay',
-                'augtype', 'slots', 'bagslots', 'bagwr',
+                'id', 'Name', 'icon', 'ac', 'hp', 'damage', 'delay',
+                'augtype', 'bagslots', 'bagwr',
                 // consumables carry their strength in casttime_
                 'casttime_',
-                // where the click fires from, for the Click column
-                'clickeffect', 'clicktype',
+                // itemtype, slots and the effect columns, which is what the Type
+                // column needs to name every category an item answers to
+                ...ItemCategories::REQUIRED_COLUMNS,
+                // where that click fires from, for the Click column
+                'clicktype',
                 'mana', 'endur', 'haste', 'aagi', 'acha', 'adex', 'aint', 'asta', 'astr', 'awis',
                 'heroic_agi', 'heroic_cha', 'heroic_dex', 'heroic_int', 'heroic_sta', 'heroic_str', 'heroic_wis',
                 'attack', 'regen', 'manaregen', 'enduranceregen', 'spellshield', 'combateffects', 'shielding',

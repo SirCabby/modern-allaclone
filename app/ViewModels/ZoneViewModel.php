@@ -7,6 +7,7 @@ use App\Models\Zone;
 use App\Models\NpcType;
 use App\Models\SpawnTwo;
 use App\Support\ContentFilter;
+use App\Support\ItemCategories;
 use Illuminate\Support\Collection;
 
 class ZoneViewModel
@@ -72,7 +73,8 @@ class ZoneViewModel
         $loottableIds = $npcs->pluck('loottable_id')->unique()->filter()->all();
 
         $items = Item::select([
-            'items.id', 'items.Name', 'items.icon', 'items.itemtype', 'items.bagslots',
+            'items.id', 'items.Name', 'items.icon', 'items.bagslots',
+            ...array_map(fn ($column) => "items.{$column}", ItemCategories::REQUIRED_COLUMNS),
             'loottable_entries.loottable_id',
             ])
             ->join('lootdrop_entries', 'items.id', '=', 'lootdrop_entries.item_id')
@@ -152,7 +154,7 @@ class ZoneViewModel
             ContentFilter::apply($query);
             $query->where('zoneid', $this->zone->zoneidnumber);
         })
-        ->select('Name', 'id', 'icon', 'itemtype', 'bagslots')
+        ->select('Name', 'id', 'icon', 'bagslots', ...ItemCategories::REQUIRED_COLUMNS)
         ->orderBy('name', 'asc')
         ->get();
     }
@@ -163,7 +165,7 @@ class ZoneViewModel
             ContentFilter::apply($query);
             $query->where('zoneid', $this->zone->zoneidnumber);
         })
-        ->select('Name', 'id', 'icon', 'itemtype', 'bagslots')
+        ->select('Name', 'id', 'icon', 'bagslots', ...ItemCategories::REQUIRED_COLUMNS)
         ->orderBy('name', 'asc')
         ->get();
     }
