@@ -22,6 +22,13 @@ return [
      * this to build the NPC/item cross-reference.
      */
     'quests_root'                       => env('QUESTS_ROOT', '/srv/quests'),
+
+    /**
+     * Where the named item lists live -- one text file per list, written as item
+     * names. `php artisan items:index-lists` resolves them against peq into the
+     * list the item search can be pinned to.
+     */
+    'item_lists_path'                   => env('ITEM_LISTS_PATH', base_path('resources/item-lists')),
     'server_max_level'                  => 70,  // server max level
     'magelo_menu_name' => 'Magelo Clone',
     'magelo_base_url' => 'https://magelo.yourdomain.com/',            // https://magelo.yourdomain.com

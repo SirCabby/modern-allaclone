@@ -15,10 +15,10 @@
                 <table class="table table-auto md:table-fixed w-full table-zebra">
                     <thead class="text-xs uppercase bg-base-300">
                         <tr>
-                            <th scope="col" class="w-[10%]">ID</th>
-                            <th scope="col">Name</th>
-                            <th scope="col">Classes</th>
-                            <th scope="col" class="w-[15%]">Category</th>
+                            <th scope="col" class="w-[10%]">@sortablelink('id', 'ID')</th>
+                            <th scope="col">@sortablelink('name', 'Name')</th>
+                            <th scope="col">@sortablelink('classes', 'Classes')</th>
+                            <th scope="col" class="w-[15%]">@sortablelink('category', 'Category')</th>
                         </tr>
                     </thead>
                     <tbody>

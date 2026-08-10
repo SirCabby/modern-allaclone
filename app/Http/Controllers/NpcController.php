@@ -62,7 +62,7 @@ class NpcController extends Controller
                     },
                     'firstSpawnEntries.spawn2.zoneData',
                 ])
-                ->orderBy('name', 'asc')
+                ->sortable(['name' => 'asc'])
                 ->paginate(50)
                 ->withQueryString();
 

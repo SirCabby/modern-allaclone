@@ -263,6 +263,150 @@ Alpine.store('tooltip', {
     }
 });
 
+// Column sorting for the tables a page hands over whole -- the zone and NPC
+// tabs, faction lists, pets, spells. The paginated searches sort in SQL instead
+// (their headers are @sortablelink), because there a page of fifty rows is not
+// the result set; here it is.
+//
+// Markup contract: `data-sortable` on the table, `data-sort` on every header
+// that should be clickable ("number" to compare numerically, anything else
+// compares as text), `data-sort-value` on any cell whose text does not sort the
+// way it reads (thousands separators, "6m 40s", a badge saying Yes), and
+// `data-sort-group` on a separator row -- rows sort within their group rather
+// than across the whole table, so a grouped list keeps its groups.
+const SORT_ICONS = {
+    asc: 'sort-icon sort-ascending',
+    desc: 'sort-icon sort-descending',
+    none: 'sort-icon sort',
+};
+
+function sortableHeaderCells(table) {
+    const row = table.querySelector('thead tr');
+
+    return row ? Array.from(row.cells) : [];
+}
+
+function cellSortValue(cell, numeric) {
+    if (!cell) {
+        return null;
+    }
+
+    const raw = (cell.dataset.sortValue ?? cell.textContent).trim();
+
+    if (!numeric) {
+        return raw === '' ? null : raw;
+    }
+
+    const number = parseFloat(raw.replace(/[^\d.+-]/g, ''));
+
+    return Number.isFinite(number) ? number : null;
+}
+
+function compareRows(a, b, numeric, sign) {
+    // An empty cell is not a result either way, so blanks sit at the bottom
+    // whichever way the column points -- what the item search does with the
+    // items it has no era or potency for.
+    if (a.value === null || b.value === null) {
+        if (a.value === b.value) {
+            return a.position - b.position;
+        }
+
+        return a.value === null ? 1 : -1;
+    }
+
+    const result = numeric
+        ? a.value - b.value
+        : String(a.value).localeCompare(String(b.value), undefined, { numeric: true, sensitivity: 'base' });
+
+    return result === 0 ? a.position - b.position : result * sign;
+}
+
+function rowGroups(body) {
+    const groups = [];
+    let current = [];
+
+    for (const row of Array.from(body.rows)) {
+        if (row.hasAttribute('data-sort-group')) {
+            if (current.length) {
+                groups.push(current);
+            }
+
+            current = [];
+            continue;
+        }
+
+        current.push(row);
+    }
+
+    if (current.length) {
+        groups.push(current);
+    }
+
+    return groups;
+}
+
+function sortTable(table, headers, index) {
+    const header = headers[index];
+    const direction = header.dataset.sortDirection === 'asc' ? 'desc' : 'asc';
+    const numeric = header.dataset.sort === 'number';
+    const sign = direction === 'asc' ? 1 : -1;
+
+    headers.forEach(cell => {
+        delete cell.dataset.sortDirection;
+        const icon = cell.querySelector('.sort-icon');
+
+        if (icon) {
+            icon.className = SORT_ICONS.none;
+        }
+    });
+
+    header.dataset.sortDirection = direction;
+    header.querySelector('.sort-icon').className = SORT_ICONS[direction];
+
+    Array.from(table.tBodies).forEach(body => {
+        rowGroups(body).forEach(rows => {
+            // Everything in the group is re-inserted ahead of whatever followed
+            // it, so a group lands back where it started rather than at the end
+            // of the table.
+            const anchor = rows[rows.length - 1].nextSibling;
+
+            rows
+                .map((row, position) => ({
+                    row,
+                    position,
+                    value: cellSortValue(row.cells[index], numeric),
+                }))
+                .sort((a, b) => compareRows(a, b, numeric, sign))
+                .forEach(entry => body.insertBefore(entry.row, anchor));
+        });
+    });
+}
+
+function initSortableTable(table) {
+    const headers = sortableHeaderCells(table);
+
+    headers.forEach((header, index) => {
+        if (!header.hasAttribute('data-sort')) {
+            return;
+        }
+
+        // Built here rather than in the template so every sortable header is
+        // one attribute in Blade, and so it comes out as the same anchor-then-
+        // icon pair @sortablelink renders on the search pages.
+        const label = document.createElement('button');
+        label.type = 'button';
+        label.className = 'link-accent link-hover cursor-pointer';
+        label.append(...header.childNodes);
+
+        const icon = document.createElement('i');
+        icon.className = SORT_ICONS.none;
+
+        header.replaceChildren(label, ' ', icon);
+        header.classList.add('cursor-pointer');
+        header.addEventListener('click', () => sortTable(table, headers, index));
+    });
+}
+
 window.Alpine = Alpine
 Alpine.start()
 
@@ -301,6 +445,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
+    document.querySelectorAll('table[data-sortable]').forEach(initSortableTable);
 
     // populate task reward column with something at least
     const rewardCol = document.querySelectorAll('td.task-rewards');

@@ -36,7 +36,7 @@ class AaAbilityController extends Controller
 
     public function index(Request $request)
     {
-        $query = AaAbility::orderBy('name');
+        $query = AaAbility::sortable(['name' => 'asc']);
 
         $abilities = (new AaAbilityFilter($request))
             ->apply($query)

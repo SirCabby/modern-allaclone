@@ -11,7 +11,7 @@ ARTISAN    = docker exec $(CONTAINER) php artisan
 .DEFAULT_GOAL := help
 
 .PHONY: help up down restart rebuild logs shell \
-        refresh index-quests index-eras cache-clear \
+        refresh index-quests index-eras index-lists cache-clear \
         migrate verify-db require-container wait-ready
 
 ##@ General
@@ -60,23 +60,28 @@ shell: require-container ## Shell into the container
 #      hides the migrations the image just baked; `make migrate` copies them in.
 #   3. quests:index      — quest_scripts + item/npc/task cross-references
 #   4. items:index-eras  — reads quest rewards, so it must follow quests:index
-#   5. cache:clear       — last, because rendered page data (TTLs from a day to
+#   5. items:index-lists — resolves resources/item-lists/*.txt to item ids, and
+#      settles same-named items by which one the era index reached, so it must
+#      follow items:index-eras
+#   6. cache:clear       — last, because rendered page data (TTLs from a day to
 #      forever) lives in the sqlite `cache` table and survives the rebuild, so
 #      pages cached before it read the new indexes only after this drops them.
 #
-# Stages 3-5 are also on their own as index-quests / index-eras / cache-clear,
-# for when you know only the data moved.
+# Stages 3-6 are also on their own as index-quests / index-eras / index-lists /
+# cache-clear, for when you know only the data moved.
 refresh: ## Ship everything: rebuild the image, migrate, reindex, drop caches
-	@printf '>> [1/5] rebuilding image and recreating container...\n'
+	@printf '>> [1/6] rebuilding image and recreating container...\n'
 	@$(MAKE) --no-print-directory rebuild
 	@$(MAKE) --no-print-directory wait-ready
-	@printf '>> [2/5] applying migrations...\n'
+	@printf '>> [2/6] applying migrations...\n'
 	@$(MAKE) --no-print-directory migrate
-	@printf '>> [3/5] indexing quest scripts...\n'
+	@printf '>> [3/6] indexing quest scripts...\n'
 	$(ARTISAN) quests:index --no-interaction
-	@printf '>> [4/5] indexing item eras (~48k items — this is the slow one)...\n'
+	@printf '>> [4/6] indexing item eras (~48k items — this is the slow one)...\n'
 	$(ARTISAN) items:index-eras --no-interaction
-	@printf '>> [5/5] clearing cached pages...\n'
+	@printf '>> [5/6] indexing item lists...\n'
+	$(ARTISAN) items:index-lists --no-interaction
+	@printf '>> [6/6] clearing cached pages...\n'
 	$(ARTISAN) cache:clear --no-interaction
 	@printf '>> refresh complete.\n'
 
@@ -97,6 +102,9 @@ index-quests: require-container ## Reindex quest scripts only
 
 index-eras: require-container ## Rebuild the item era index only (wants a current quest index)
 	$(ARTISAN) items:index-eras --no-interaction
+
+index-lists: require-container ## Rebuild the item list index only (wants a current era index)
+	$(ARTISAN) items:index-lists --no-interaction
 
 cache-clear: require-container ## Drop cached page data only
 	$(ARTISAN) cache:clear --no-interaction

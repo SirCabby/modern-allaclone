@@ -20,6 +20,20 @@
             @include('items.partials.index.search')
         </div>
     </div>
+    {{-- The search panel remembers being closed, so a loaded list has to say so
+         out here -- otherwise a search scoped to a few hundred items looks like
+         a search over all 118,000 that is simply missing things. --}}
+    @if ($activeList)
+        <div class="flex flex-wrap items-center justify-center gap-3 mt-4">
+            <span class="badge badge-info">{{ $activeList->name }}</span>
+            <span class="text-sm text-gray-500">
+                list loaded &mdash; {{ $activeList->item_count }} items, nothing outside it can be returned
+            </span>
+            <a href="{{ route('items.index', collect(request()->query())->except(['list', 'page'])->all()) }}"
+                class="btn btn-xs btn-soft btn-error">Clear list</a>
+        </div>
+    @endif
+
     @if ($items->isNotEmpty())
         <div class="flex w-full flex-col">
             <div class="divider uppercase text-xl font-bold text-sky-400">Items ({{ $items->total() }} Found)</div>
@@ -29,7 +43,13 @@
         <div class="flex flex-col items-center justify-center h-64">
             <div class="text-center text-gray-500">
                 <p class="text-lg font-semibold">No items found.</p>
-                <p class="mt-2">Try adjusting the search criteria.</p>
+                <p class="mt-2">
+                    @if ($activeList)
+                        Nothing in {{ $activeList->name }} matches the rest of the search.
+                    @else
+                        Try adjusting the search criteria.
+                    @endif
+                </p>
             </div>
         </div>
     @endif

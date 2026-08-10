@@ -11,11 +11,12 @@
                         : $drop->mindrop . '-' . $drop->droplimit . ' drops' }}
                 </p>
             </div>
-            <table class="table table-auto md:table-fixed w-full table-zebra">
+            <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
                 <thead class="text-xs uppercase bg-base-300">
                     <tr>
-                        <th scope="col" class="w-[80%]">Item</th>
-                        <th scope="col" class="w-[20%]">Chance</th>
+                        <th scope="col" class="w-[80%]" data-sort>Item</th>
+                        <th scope="col" class="w-[20%]"
+                            @if (config('everquest.npc.display.loot_chance')) data-sort="number" @endif>Chance</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,7 +35,7 @@
                                 </tr>
                             @else
                             <tr>
-                                <td scope="row">
+                                <td scope="row" data-sort-value="{{ $loot->item?->Name }}">
                                     <div class="flex items-center space-x-3">
                                         @if ($loot->item)
                                             <x-item-link

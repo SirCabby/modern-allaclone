@@ -6,9 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use Kyslik\ColumnSortable\Sortable;
 
 class AaAbility extends Model
 {
+    use Sortable;
+
+    public array $sortable = [
+        'id',
+        'name',
+        // both are the raw column: the class bitmask groups the abilities that
+        // are offered to the same classes, and the category id is what its name
+        // is looked up by
+        'classes',
+        'category',
+    ];
+
     protected $connection = 'eqemu';
     protected $table = 'aa_ability';
     public $timestamps = false;

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Kyslik\ColumnSortable\Sortable;
 
 /**
  * One quest script file from the server's quests/ tree.
@@ -14,6 +15,22 @@ use Illuminate\Support\Facades\Storage;
  */
 class QuestScript extends Model
 {
+    use Sortable;
+
+    public array $sortable = [
+        // The Zone column reads long names but sorts on the short one it stores,
+        // which groups the results by zone either way -- and is the order the
+        // index already arrives in.
+        'zone',
+        'language',
+        // Not columns: the displayed name is assembled from two of them, and the
+        // three counts are aliases withCount() hangs on the row.
+        'name',
+        'handins',
+        'rewards',
+        'spawns',
+    ];
+
     protected $table = 'quest_scripts';
 
     protected $fillable = [
@@ -24,6 +41,27 @@ class QuestScript extends Model
     protected $casts = [
         'npc_ambiguous' => 'boolean',
     ];
+
+    /** Order the way display_name reads: the NPC name, or the file when it has none. */
+    public function nameSortable($query, $direction)
+    {
+        return $query->orderByRaw("COALESCE(NULLIF(npc_name, ''), file_name) COLLATE NOCASE {$direction}");
+    }
+
+    public function handinsSortable($query, $direction)
+    {
+        return $query->orderBy('handin_count', $direction);
+    }
+
+    public function rewardsSortable($query, $direction)
+    {
+        return $query->orderBy('reward_count', $direction);
+    }
+
+    public function spawnsSortable($query, $direction)
+    {
+        return $query->orderBy('npcs_count', $direction);
+    }
 
     /**
      * Human-friendly name for pages and links: the NPC name with the

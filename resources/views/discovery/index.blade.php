@@ -13,9 +13,9 @@
             <table class="table table-auto md:table-fixed w-full table-zebra">
                 <thead class="text-xs uppercase bg-base-300">
                     <tr>
-                        <th scope="col" class="w-[20%]">Character</th>
-                        <th scope="col">Item</th>
-                        <th scope="col" class="w-[15%]">Date Discovered</th>
+                        <th scope="col" class="w-[20%]">@sortablelink('char_name', 'Character')</th>
+                        <th scope="col">@sortablelink('item', 'Item')</th>
+                        <th scope="col" class="w-[15%]">@sortablelink('discovered_date', 'Date Discovered')</th>
                     </tr>
                 </thead>
                 <tbody>

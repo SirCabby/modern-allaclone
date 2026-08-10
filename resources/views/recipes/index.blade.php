@@ -13,10 +13,10 @@
         <table class="table table-auto table-zebra md:table-fixed w-full">
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[60%]">Name</th>
-                    <th scope="col" class="w-[20%]">Tradeskill</th>
-                    <th scope="col" class="w-[10%] text-right">Enabled</th>
-                    <th scope="col" class="w-[10%] text-right">Trivial</th>
+                    <th scope="col" class="w-[60%]">@sortablelink('name', 'Name')</th>
+                    <th scope="col" class="w-[20%]">@sortablelink('tradeskill', 'Tradeskill')</th>
+                    <th scope="col" class="w-[10%] text-right">@sortablelink('enabled', 'Enabled')</th>
+                    <th scope="col" class="w-[10%] text-right">@sortablelink('trivial', 'Trivial')</th>
                 </tr>
             </thead>
             <tbody>

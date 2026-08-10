@@ -3,6 +3,7 @@
 namespace App\Filters;
 
 use App\Models\ItemExpansion;
+use App\Models\ItemList;
 use App\Support\ItemCategories;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class ItemFilter
     protected $builder;
 
     protected array $filters = [
+        'list',
         'name',
         'slot',
         'augslot',
@@ -56,6 +58,30 @@ class ItemFilter
         $this->applyLevelFilter();
 
         return $this->builder;
+    }
+
+    /**
+     * Pin the search to one named list: nothing outside it can be returned, and
+     * every other filter narrows within it.
+     *
+     * Like the era checklist this is ids inlined rather than a join -- the lists
+     * live in the app's own sqlite database, not peq. A list is a few hundred
+     * ids, well inside what the era filter already inlines.
+     *
+     * An unknown slug applies nothing rather than matching nothing. It only
+     * arrives from a bookmark to a list that has since been renamed or removed,
+     * and the picker shows "-" for it, so a full result set says what happened
+     * where an empty one would just look broken.
+     */
+    protected function list($value)
+    {
+        $ids = ItemList::itemIdsForSlug(is_string($value) ? $value : null);
+
+        if ($ids === null) {
+            return;
+        }
+
+        $this->builder->whereIntegerInRaw('items.id', $ids);
     }
 
     protected function name($value)

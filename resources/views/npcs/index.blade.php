@@ -18,11 +18,11 @@
             <table class="table table-auto md:table-fixed w-full table-zebra">
                 <thead class="text-xs uppercase bg-base-300">
                     <tr>
-                        <th scope="col" class="w-[30%]">Name</th>
-                        <th scope="col" class="w-[30%]">Zone</th>
-                        <th scope="col" class="w-[20%]">Lvl</th>
+                        <th scope="col" class="w-[30%]">@sortablelink('name', 'Name')</th>
+                        <th scope="col" class="w-[30%]">@sortablelink('zone', 'Zone')</th>
+                        <th scope="col" class="w-[20%]">@sortablelink('level', 'Lvl')</th>
                         @if (config('everquest.npc.display.hp'))
-                            <th scope="col" class="w-[20%] hidden md:table-cell">HP</th>
+                            <th scope="col" class="w-[20%] hidden md:table-cell">@sortablelink('hp', 'HP')</th>
                         @endif
                     </tr>
                 </thead>

@@ -2,12 +2,12 @@
     <table class="table table-auto md:table-fixed w-full table-zebra">
         <thead class="text-xs uppercase bg-base-300">
             <tr>
-                <th scope="col" class="w-[35%]">Quest NPC / Script</th>
-                <th scope="col" class="w-[25%]">Zone</th>
-                <th scope="col" class="w-[10%] hidden md:table-cell">Hand-ins</th>
-                <th scope="col" class="w-[10%] hidden md:table-cell">Rewards</th>
-                <th scope="col" class="w-[10%] hidden lg:table-cell">Spawns</th>
-                <th scope="col" class="w-[10%] hidden md:table-cell">Type</th>
+                <th scope="col" class="w-[35%]">@sortablelink('name', 'Quest NPC / Script')</th>
+                <th scope="col" class="w-[25%]">@sortablelink('zone', 'Zone')</th>
+                <th scope="col" class="w-[10%] hidden md:table-cell">@sortablelink('handins', 'Hand-ins')</th>
+                <th scope="col" class="w-[10%] hidden md:table-cell">@sortablelink('rewards', 'Rewards')</th>
+                <th scope="col" class="w-[10%] hidden lg:table-cell">@sortablelink('spawns', 'Spawns')</th>
+                <th scope="col" class="w-[10%] hidden md:table-cell">@sortablelink('language', 'Type')</th>
             </tr>
         </thead>
         <tbody>

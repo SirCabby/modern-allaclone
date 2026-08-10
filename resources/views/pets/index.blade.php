@@ -15,17 +15,19 @@
     @endif
     @if ($pets->isNotEmpty())
     <div class="border border-base-content/5 overflow-x-auto mt-6">
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[5%]">Lvl</th>
-                    <th scope="col" class="w-[20%]">Spell</th>
-                    <th scope="col" class="w-[10%]">Name</th>
-                    <th scope="col" class="w-[10%] hidden lg:table-cell">Race</th>
-                    <th scope="col" class="w-[20%]">Class</th>
-                    <th scope="col" class="w-[10%] hidden md:table-cell">HP</th>
-                    <th scope="col" class="w-[10%] hidden lg:table-cell">AC</th>
-                    <th scope="col" class="w-[15%] hidden lg:table-cell">DMG</th>
+                    <th scope="col" class="w-[5%]" data-sort="number">Lvl</th>
+                    <th scope="col" class="w-[20%]" data-sort>Spell</th>
+                    <th scope="col" class="w-[10%]" data-sort>Name</th>
+                    <th scope="col" class="w-[10%] hidden lg:table-cell" data-sort>Race</th>
+                    <th scope="col" class="w-[20%]" data-sort>Class</th>
+                    <th scope="col" class="w-[10%] hidden md:table-cell" data-sort="number">HP</th>
+                    <th scope="col" class="w-[10%] hidden lg:table-cell" data-sort="number">AC</th>
+                    {{-- "5-10" parses as 5, so the column sorts on the bottom of
+                         the range, which is the number it reads. --}}
+                    <th scope="col" class="w-[15%] hidden lg:table-cell" data-sort="number">DMG</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,7 +37,7 @@
                     @endif
                     <tr>
                         <td scope="row">{{ $pet->npcs ? $pet->npcs->level : 'N/A' }}</td>
-                        <td>
+                        <td data-sort-value="{{ $pet->name }}">
                             <x-spell-link
                                 :spell_id="$pet->id"
                                 :spell_name="$pet->name"
@@ -43,7 +45,7 @@
                                 spell_class="flex text-base"
                             />
                         </td>
-                        <td>
+                        <td data-sort-value="{{ $pet->pets->type }}">
                             <x-pet-link
                                 :pet_id="$pet->pets->id"
                                 :pet_name="$pet->pets->type"

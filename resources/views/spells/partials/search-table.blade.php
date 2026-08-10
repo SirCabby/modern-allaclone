@@ -16,21 +16,23 @@
         </span>
     @endif
     <div class="border border-base-content/5 overflow-x-auto">
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        {{-- One table per level group, so a sort reorders the spells within a
+             level rather than collapsing the levels together. --}}
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[20%]">Name</th>
-                    <th scope="col" class="w-[10%]">Class</th>
+                    <th scope="col" class="w-[20%]" data-sort>Name</th>
+                    <th scope="col" class="w-[10%]" data-sort>Class</th>
                     <th scope="col" class="w-[40%]">Effect(s)</th>
-                    <th scope="col" class="w-[10%] hidden lg:table-cell">Mana</th>
-                    <th scope="col" class="w-[10%] hidden md:table-cell">Skill</th>
-                    <th scope="col" class="w-[10%] hidden lg:table-cell">Target Type</th>
+                    <th scope="col" class="w-[10%] hidden lg:table-cell" data-sort="number">Mana</th>
+                    <th scope="col" class="w-[10%] hidden md:table-cell" data-sort>Skill</th>
+                    <th scope="col" class="w-[10%] hidden lg:table-cell" data-sort>Target Type</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($spellGroup['spells'] as $sp)
                     <tr>
-                        <td scope="row">
+                        <td scope="row" data-sort-value="{{ $sp->name }}">
                             <x-spell-link
                                 :spell_id="$sp->id"
                                 :spell_name="$sp->name"

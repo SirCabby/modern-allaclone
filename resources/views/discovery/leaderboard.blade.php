@@ -7,13 +7,13 @@
             <div class="divider uppercase text-xl font-bold text-sky-400">Discovered Items by Top 25 Characters</div>
         </div>
         <div class="border border-base-content/5 overflow-x-auto">
-            <table class="table table-auto md:table-fixed w-full table-zebra">
+            <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
                 <thead class="text-xs uppercase bg-base-300">
                     <tr>
-                        <th scope="col" class="w-[5%]">#</th>
-                        <th scope="col">Character</th>
-                        <th scope="col" class="w-[10%]">Total Discovered</th>
-                        <th scope="col">Latest Item</th>
+                        <th scope="col" class="w-[5%]" data-sort="number">#</th>
+                        <th scope="col" data-sort>Character</th>
+                        <th scope="col" class="w-[10%]" data-sort="number">Total Discovered</th>
+                        <th scope="col" data-sort>Latest Item</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,7 +34,7 @@
 
                     <td>{{ $leader->total_discovered }}</td>
 
-                    <td>
+                    <td data-sort-value="{{ $leader->latest_item?->Name }}">
                         @if($leader->latest_item)
                             <div class="flex flex-col">
                                 <x-item-link

@@ -1,13 +1,15 @@
 <input type="radio" name="npc_details" class="tab" aria-label="Spawns" {{ $defaultTab === 'spawns' ? 'checked' : '' }}/>
 <div class="tab-content bg-base-100 border-base-300">
     <div class="border border-base-content/5 overflow-x-auto">
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[20%]">Coords ({{ loc_order() }})</th>
-                    <th scope="col" class="w-[50%]">Placeholders</th>
-                    <th scope="col" class="w-[10%]">Chance</th>
-                    <th scope="col" class="w-[20%]">Respawn</th>
+                    <th scope="col" class="w-[20%]"
+                        @if (config('everquest.npc.display.spawn_locs')) data-sort @endif>Coords ({{ loc_order() }})</th>
+                    <th scope="col" class="w-[50%]" data-sort>Placeholders</th>
+                    <th scope="col" class="w-[10%]" data-sort="number">Chance</th>
+                    <th scope="col" class="w-[20%]"
+                        @if (config('everquest.npc.display.respawn')) data-sort="number" @endif>Respawn</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,7 +44,7 @@
                                     @endif
                                 </td>
                                 <td>{{ $spawn->chance }}%</td>
-                                <td>
+                                <td @if (config('everquest.npc.display.respawn')) data-sort-value="{{ $spawn2?->respawntime }}" @endif>
                                     @if (config('everquest.npc.display.respawn'))
                                         @if ($spawn2)
                                             {{ seconds_to_human($spawn2->respawntime) }}

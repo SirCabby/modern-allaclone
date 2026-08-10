@@ -22,7 +22,7 @@ class TaskController extends Controller
                 ])
                 ->withCount('taskActivities')
                 ->where('enabled', 1)
-                ->orderBy('title', 'asc')
+                ->sortable(['title' => 'asc'])
                 ->paginate(50)
                 ->withQueryString()
         );

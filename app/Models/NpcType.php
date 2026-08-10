@@ -2,19 +2,65 @@
 
 namespace App\Models;
 
+use App\Support\ContentFilter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\DB;
+use Kyslik\ColumnSortable\Sortable;
 
 class NpcType extends Model
 {
     use HasFactory;
+    use Sortable;
+
+    public array $sortable = [
+        'name',
+        'level',
+        'hp',
+        // not a column: see zoneSortable()
+        'zone',
+    ];
 
     protected $connection = 'eqemu';
     protected $table = 'npc_types';
+
+    /**
+     * Order by the zone the search shows for the NPC.
+     *
+     * That name is three tables away -- spawnentry -> spawn2 -> zone -- and an
+     * NPC with four spawn points is still one row, so this is a correlated
+     * subquery rather than a join, gated the way the page gates the column
+     * itself. NPCs with no live spawn point (quest- or script-spawned) show an
+     * empty cell, so they sit at the bottom whichever way the column points.
+     */
+    public function zoneSortable($query, $direction)
+    {
+        $ignoreZones = config('everquest.ignore_zones') ?? [];
+
+        $zone = DB::connection($this->getConnectionName())
+            ->table('spawnentry')
+            ->select('zone.long_name')
+            ->join('spawn2', 'spawn2.spawngroupID', '=', 'spawnentry.spawngroupID')
+            ->join('zone', function ($join) {
+                $join->on('zone.short_name', '=', 'spawn2.zone')
+                    ->on('zone.version', '=', 'spawn2.version');
+            })
+            ->whereColumn('spawnentry.npcID', 'npc_types.id')
+            ->when(!empty($ignoreZones), fn ($q) => $q->whereNotIn('spawn2.zone', $ignoreZones))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'spawnentry'))
+            ->tap(fn ($q) => ContentFilter::apply($q, 'spawn2'))
+            ->tap(fn ($q) => ContentFilter::applyZone($q, 'zone'))
+            ->orderBy('zone.long_name')
+            ->limit(1);
+
+        return $query
+            ->orderByRaw('(' . $zone->toSql() . ') IS NULL', $zone->getBindings())
+            ->orderBy($zone, $direction);
+    }
 
     public function getCleanNameAttribute(): string
     {

@@ -26,7 +26,7 @@ class DiscoveredItemController extends Controller
             ->where('character_data.gm', 0)
             ->with('item')
             ->select('discovered_items.*')
-            ->orderByDesc('discovered_date');
+            ->sortable(['discovered_date' => 'desc']);
 
         $query = (new DiscoveredItemFilter($request))->apply($query);
         $items = $query->paginate(50)->withQueryString();

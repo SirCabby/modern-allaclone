@@ -1,12 +1,12 @@
 <input type="radio" name="zone_details" class="tab" aria-label="Drops ({{ count($drops) ?? 0 }})" />
 <div class="tab-content bg-base-100 border-base-300">
     <div class="border border-base-content/5 overflow-x-auto">
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-2/5">Item</th>
-                    <th scope="col" class="w-1/5 hidden md:table-cell">Type</th>
-                    <th scope="col" class="w-2/5">Dropped</th>
+                    <th scope="col" class="w-2/5" data-sort>Item</th>
+                    <th scope="col" class="w-1/5 hidden md:table-cell" data-sort>Type</th>
+                    <th scope="col" class="w-2/5" data-sort>Dropped</th>
                 </tr>
             </thead>
             <tbody>
@@ -19,7 +19,7 @@
                         </tr>
                     @else
                     <tr>
-                        <td scope="row">
+                        <td scope="row" data-sort-value="{{ $drop['item']['Name'] }}">
                             <div class="flex items-center space-x-3">
                                 <x-item-link
                                     :item_id="$drop['item']['id']"
@@ -35,7 +35,7 @@
                                 {{ implode(', ', \App\Support\ItemCategories::labels($drop['item'])) }}
                             @endif
                         </td>
-                        <td class="text-nowrap">
+                        <td class="text-nowrap" data-sort-value="{{ $drop['npcs'][0]->clean_name ?? '' }}">
                             @if (count($drop['npcs']) === 1)
                                 {{ $drop['npcs'][0]->clean_name }} (Lvl {{ $drop['npcs'][0]->level }})
                             @elseif (count($drop['npcs']) > 1)

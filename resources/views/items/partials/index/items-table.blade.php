@@ -79,8 +79,8 @@
                 <th scope="col">@sortablelink('Name', 'Name')</th>
                 <th scope="col" data-col="type" class="w-[20%]">@sortablelink('itemtype', 'Type')</th>
                 @if (!empty($eraOptions))
-                    <th scope="col" data-col="era" class="w-[10%] hidden lg:table-cell">Era</th>
-                    <th scope="col" data-col="zone" class="w-[15%] hidden lg:table-cell">Zone</th>
+                    <th scope="col" data-col="era" class="w-[10%] hidden lg:table-cell">@sortablelink('era', 'Era')</th>
+                    <th scope="col" data-col="zone" class="w-[15%] hidden lg:table-cell">@sortablelink('zone', 'Zone')</th>
                 @endif
                 @foreach ($activeStats as $s)
                     <th scope="col" class="w-[5%]">@sortablelink($s, $statLabels[$s] ?? strtoupper($s))</th>
@@ -95,7 +95,7 @@
                     <th scope="col" data-col="damage" class="w-[5%] hidden md:table-cell">@sortablelink('damage', 'DMG')</th>
                 @endif
                 @if (!in_array('delay', $activeStats))
-                    <th scope="col" data-col="delay" class="w-[5%] hidden md:table-cell">Delay</th>
+                    <th scope="col" data-col="delay" class="w-[5%] hidden md:table-cell">@sortablelink('delay', 'Delay')</th>
                 @endif
                 @if (!in_array('ratio', $activeStats))
                     <th scope="col" data-col="ratio" class="w-[5%] hidden md:table-cell">@sortablelink('ratio', 'Ratio')</th>

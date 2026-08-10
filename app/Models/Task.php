@@ -8,13 +8,31 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Kyslik\ColumnSortable\Sortable;
 
 class Task extends Model
 {
     use HasFactory;
+    use Sortable;
+
+    public array $sortable = [
+        'title',
+        // sorts on the raw column, which is the order the labels are numbered in
+        'type',
+        'min_level',
+        'max_level',
+        'repeatable',
+        // not a column: the activity count withCount() hangs on the row
+        'steps',
+    ];
 
     protected $connection = 'eqemu';
     protected $table = 'tasks';
+
+    public function stepsSortable($query, $direction)
+    {
+        return $query->orderBy('task_activities_count', $direction);
+    }
 
     public function getTaskTypeAttribute(): string
     {

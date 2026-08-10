@@ -2,11 +2,13 @@
     faction</h2>
 <div class="border border-base-content/5 overflow-x-auto">
     @if ($factions['lowered'])
-        <table class="table table-auto md:table-fixed table-sm w-full table-zebra">
+        {{-- The zone headings are separator rows, so a sort reorders the NPCs
+             inside each zone rather than shuffling them between zones. --}}
+        <table class="table table-auto md:table-fixed table-sm w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[90%]">NPC</th>
-                    <th scope="col" class="w-[10%] text-right">Value</th>
+                    <th scope="col" class="w-[90%]" data-sort>NPC</th>
+                    <th scope="col" class="w-[10%] text-right" data-sort="number">Value</th>
                 </tr>
             </thead>
             <tbody>
@@ -15,7 +17,7 @@
                         [$zoneId, $zoneName] = explode('|', $zone);
                     @endphp
                     @if ($zoneId)
-                        <tr>
+                        <tr data-sort-group>
                             <td colspan="2" class="bg-neutral-900">
                                 NPCs In
                                 <a href="{{ route('zones.show', $zoneId) }}" class="text-base font-semibold link-accent link-hover">

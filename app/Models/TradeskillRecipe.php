@@ -5,10 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Kyslik\ColumnSortable\Sortable;
 
 class TradeskillRecipe extends Model
 {
     use HasFactory;
+    use Sortable;
+
+    public array $sortable = [
+        'name',
+        // the id, which groups the recipes by skill the way the column reads
+        'tradeskill',
+        'enabled',
+        'trivial',
+    ];
 
     protected $connection = 'eqemu';
     protected $table = 'tradeskill_recipe';

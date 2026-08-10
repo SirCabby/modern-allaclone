@@ -4,12 +4,34 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Kyslik\ColumnSortable\Sortable;
 
 class DiscoveredItem extends Model
 {
+    use Sortable;
+
+    public array $sortable = [
+        'char_name',
+        'discovered_date',
+        // not a column: see itemSortable()
+        'item',
+    ];
+
     protected $connection = 'eqemu';
     protected $table = 'discovered_items';
     protected $primaryKey = 'item_id';
+
+    /**
+     * Order by the item's name, which lives one table over. Joined here rather
+     * than left to the package's relation sorting, because the query already
+     * carries a join and a select of its own.
+     */
+    public function itemSortable($query, $direction)
+    {
+        return $query
+            ->leftJoin('items', 'items.id', '=', 'discovered_items.item_id')
+            ->orderBy('items.Name', $direction);
+    }
 
     protected $casts = [
         'item_id' => 'integer',

@@ -1,18 +1,19 @@
 <input type="radio" name="zone_details" class="tab" aria-label="Spawns Locs ({{ count($spawnGroups) ?? 0 }})" />
 <div class="tab-content bg-base-100 border-base-300">
     <div class="border border-base-content/5 overflow-x-auto">
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[40%] hidden md:table-cell">Spawn Grp ({{ loc_order() }})</th>
-                    <th scope="col" class="w-[40%]">NPCs</th>
-                    <th scope="col" class="w-[20%] text-right">Respawn</th>
+                    <th scope="col" class="w-[40%] hidden md:table-cell" data-sort>Spawn Grp ({{ loc_order() }})</th>
+                    <th scope="col" class="w-[40%]" data-sort>NPCs</th>
+                    <th scope="col" class="w-[20%] text-right"
+                        @if (config('everquest.npc.display.respawn')) data-sort="number" @endif>Respawn</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($spawnGroups as $grp)
                     <tr>
-                        <td scope="row" class="hidden md:table-cell">
+                        <td scope="row" class="hidden md:table-cell" data-sort-value="{{ $grp->name }}">
                             <div class="flex flex-col">
                                 {{ $grp->name }}
                                 <span class="text-xs uppercase text-gray-500">
@@ -24,7 +25,9 @@
                                 </span>
                             </div>
                         </td>
-                        <td>
+                        {{-- Sorts on the first NPC in the group, which is what the
+                             cell reads down from. --}}
+                        <td data-sort-value="{{ $grp->spawnentries->first(fn ($spawn) => (bool) $spawn->npc)?->npc?->clean_name }}">
                             <ul class="list">
                                 @foreach ($grp->spawnentries as $spawn)
                                     @if ($spawn->npc)
@@ -38,7 +41,8 @@
                                 @endforeach
                             </ul>
                         </td>
-                        <td class="text-nowrap text-right">
+                        <td class="text-nowrap text-right"
+                            @if (config('everquest.npc.display.respawn')) data-sort-value="{{ $grp->respawntime }}" @endif>
                             @if (config('everquest.npc.display.respawn'))
                                 {{ seconds_to_human($grp->respawntime) }}
                             @else

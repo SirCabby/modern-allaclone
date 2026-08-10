@@ -51,4 +51,11 @@ if [ "${ITEM_ERAS_INDEX_ON_BOOT:-false}" = "true" ]; then
     php artisan items:index-eras || echo "[entrypoint] item era index failed (continuing)"
 fi
 
+# After items:index-eras -- which of two items sharing a name a list means is
+# settled by which one the era index reached. Cheap (seconds), and the lists ship
+# in the image, so this is not gated behind a flag: a rebuild that changed a list
+# file should serve the new list.
+echo "[entrypoint] indexing item lists"
+php artisan items:index-lists || echo "[entrypoint] item list index failed (continuing)"
+
 exec "$@"

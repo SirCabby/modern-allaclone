@@ -95,14 +95,14 @@
                     Ranks ({{ $rankCount ?? count($allRanks) }} total)
                 </h3>
                 <div class="border border-base-content/5 overflow-x-auto">
-                    <table class="table table-auto md:table-fixed w-full table-zebra">
+                    <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
                         <thead class="text-xs uppercase bg-base-300">
                             <tr>
-                                <th class="w-[5%]">#</th>
-                                <th class="w-[5%]">Cost</th>
-                                <th class="w-[5%]">Level</th>
-                                <th>Prereqs</th>
-                                <th>Spell</th>
+                                <th class="w-[5%]" data-sort="number">#</th>
+                                <th class="w-[5%]" data-sort="number">Cost</th>
+                                <th class="w-[5%]" data-sort="number">Level</th>
+                                <th data-sort>Prereqs</th>
+                                <th data-sort>Spell</th>
                             </tr>
                         </thead>
                         <tbody>

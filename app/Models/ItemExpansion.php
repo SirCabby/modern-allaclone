@@ -17,6 +17,12 @@ class ItemExpansion extends Model
 {
     public const ERAS_CACHE_KEY = 'items.eras.available';
 
+    /** Prefix for the per-column orderings built by orderedItemIds(). */
+    public const ORDER_CACHE_KEY = 'items.eras.ordered';
+
+    /** The columns fed by this index, and so the ones it can order. */
+    public const ORDERABLE = ['era', 'zone'];
+
     protected $table = 'item_expansions';
 
     protected $primaryKey = 'item_id';
@@ -85,6 +91,62 @@ class ItemExpansion extends Model
     public static function forItem(int $itemId): ?self
     {
         return self::query()->find($itemId);
+    }
+
+    /**
+     * Every indexed item id, ascending by era or by zone name.
+     *
+     * The Era and Zone columns are the two the results table cannot sort in
+     * SQL: this index is sqlite and `items` is peq, so there is no join to
+     * order by and no id list small enough to inline as one. Handing back the
+     * whole ordering instead lets the caller keep the ids its search matched
+     * and page through those -- 47k integers, built once and cached until the
+     * next `items:index-eras`.
+     *
+     * Zone order follows the name the table prints rather than the short name
+     * stored here, and rows dated without a place -- crafted goods, LDoN
+     * purchases -- are left out entirely: they show "-", so they belong with
+     * the undated items at the bottom rather than under an empty name.
+     */
+    public static function orderedItemIds(string $by): array
+    {
+        if (!in_array($by, self::ORDERABLE, true)) {
+            return [];
+        }
+
+        return Cache::remember(self::ORDER_CACHE_KEY . ".{$by}", 3600, function () use ($by) {
+            if ($by === 'era') {
+                return self::query()
+                    ->orderBy('expansion')
+                    ->orderBy('item_id')
+                    ->pluck('item_id')
+                    ->all();
+            }
+
+            $rows = self::query()
+                ->whereNotNull('zone')
+                ->where('zone', '!=', '')
+                ->orderBy('item_id')
+                ->get(['item_id', 'expansion', 'zone']);
+
+            $zones = Zone::byShortNames($rows->pluck('zone')->unique()->values()->all());
+
+            // Which version of a zone a row means depends on its era, so the
+            // name is resolved once per (zone, era) pair rather than once per
+            // item -- a few hundred lookups instead of forty thousand.
+            $names = [];
+
+            foreach ($rows as $row) {
+                $key = $row->zone . '|' . $row->expansion;
+                $names[$key] ??= Zone::forEra($zones, $row->zone, $row->expansion)?->long_name;
+            }
+
+            return $rows
+                ->filter(fn ($row) => $names[$row->zone . '|' . $row->expansion] !== null)
+                ->sortBy(fn ($row) => $names[$row->zone . '|' . $row->expansion], SORT_NATURAL | SORT_FLAG_CASE)
+                ->pluck('item_id')
+                ->all();
+        });
     }
 
     /** Eras for the fifty-odd rows on one page of results, keyed by item id. */

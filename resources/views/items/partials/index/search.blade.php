@@ -40,6 +40,27 @@
 
 <form method="get" action="{{ route('items.index') }}" class="mb-6">
     <div class="space-y-4">
+        {{-- Loading a list scopes the whole search: everything below narrows
+             within it, and nothing outside it can come back. Rendered only once
+             `php artisan items:index-lists` has built one, the same way the era
+             checklist waits for its index. --}}
+        @if ($itemLists->isNotEmpty())
+            <div>
+                <label class="select w-full sm:w-auto">
+                    <span class="label">List</span>
+                    <select id="list" name="list" class="select">
+                        <option value="">-</option>
+                        @foreach ($itemLists as $itemList)
+                            <option value="{{ $itemList->slug }}"
+                                {{ request('list') === $itemList->slug ? 'selected' : '' }}>
+                                {{ $itemList->name }} ({{ $itemList->item_count }})
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+        @endif
+
         <div>
             <input type="text" id="name" name="name" value="{{ request('name') }}" class="w-full input"
                 placeholder="Search item by name" />

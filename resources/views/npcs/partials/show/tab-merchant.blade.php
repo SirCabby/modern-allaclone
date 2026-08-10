@@ -25,12 +25,12 @@
                 @endif
             </div>
         </div>
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[60%]">Item</th>
-                    <th scope="col" class="w-[20%]">Type</th>
-                    <th scope="col" class="w-[20%] text-right">Cost</th>
+                    <th scope="col" class="w-[60%]" data-sort>Item</th>
+                    <th scope="col" class="w-[20%]" data-sort>Type</th>
+                    <th scope="col" class="w-[20%] text-right" data-sort="number">Cost</th>
                 </tr>
             </thead>
             <tbody>
@@ -46,8 +46,19 @@
                             </td>
                         </tr>
                     @else
+                    @php
+                        // The categories the Type cell prints, and the raw number
+                        // behind whatever the Cost cell prints, so both columns
+                        // sort on the value rather than on the formatting.
+                        $categories = $sell->items ? \App\Support\ItemCategories::labels($sell->items) : [];
+                        $ldonPriced = $sell->items
+                            && (($sell->items->pointtype === 1 && $sell->items->ldonsold !== 0)
+                                || in_array($sell->items->pointtype, [4, 5]));
+                        $cost = $sell->alt_currency_cost
+                            ?: ($sell->items ? ($ldonPriced ? $sell->items->ldonprice : $sell->items->price) : null);
+                    @endphp
                     <tr>
-                        <td scope="row">
+                        <td scope="row" data-sort-value="{{ $sell->items?->Name }}">
                             <div class="flex flex-col">
                                 @if ($sell->items)
                                 <x-item-link
@@ -70,13 +81,12 @@
                                 @endif
                             </div>
                         </td>
-                        <td>
+                        <td data-sort-value="{{ $categories[0] ?? '' }}">
                             <div class="flex flex-col">
                                 @if ($sell->items)
                                     {{-- Primary category, with anything the item
                                          also is underneath -- same rules as the
                                          item search Type column. --}}
-                                    @php $categories = \App\Support\ItemCategories::labels($sell->items); @endphp
                                     {{ array_shift($categories) }}
                                     @if ($categories)
                                         <span class="text-xs text-gray-500 truncate">
@@ -109,7 +119,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td class="text-right">
+                        <td class="text-right" data-sort-value="{{ $cost }}">
                             @if ($sell->alt_currency_cost)
                                 {{ $sell->alt_currency_cost }}
                             @elseif ($sell->items)

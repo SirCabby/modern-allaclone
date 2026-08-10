@@ -1,0 +1,623 @@
+# Classic Items of Interest
+#
+# A hand-kept list of classic-era gear worth chasing. Offered on the item search
+# page as a "list": with it picked, the search returns nothing outside it.
+#
+# Format -- see App\Console\Commands\IndexItemLists:
+#   @title <name>     what the picker calls this list (the slug is the filename)
+#   # ...             a comment; only at the start of a line, since item names
+#                     of their own carry '#' ("Room Key # 6")
+#   <name>            one item, matched on its exact name
+#   <name> Set        every worn piece whose name starts with <name> -- unless an
+#                     item is really called "<name> Set", which then wins
+#   <name> = <id>     pin an exact peq.items.id, for a name two items share
+#   - <name>          drop a piece the Set line above it pulled in by mistake
+#
+# Rebuild with `php artisan items:index-lists`, after `items:index-eras`: which
+# of two same-named items is meant is settled by which one the era index knows.
+#
+# The comments below are the zones the list was grouped by. They are only
+# comments -- nothing here is filtered by zone.
+
+@title Classic Items of Interest
+
+
+# Befallen
+Barbed Armplates
+Barbed Legplates
+Bone Bladed Claymore
+Dagger of Marnek
+
+# Blackburrow
+Elven Charm Necklace
+
+# Crushbone
+Bracers of Battle
+Dwarven Ringmail Tunic
+
+# Everfrost
+Bloody Dirk
+Bloody Mantle
+Cloak of the Ice Bear
+
+# Fearplane
+Amygdalan Tendril
+Barbarian Spiritist`s Hammer
+BladeStorm, Katana of Steel Sleet
+# NEC
+Blighted Set
+Blood Fire
+Bone Razor
+Bone-Clasped Girdle
+# WIZ
+Carmine Set
+Crimson Robe of Alendine
+# INT Casters
+Cryosilk Set
+Dweamorvine Garland
+Eyerazzia
+Flayed Turmoilskin Belt
+Fluxbladed Axe
+Girdle of the Diligent
+
+# Hateplane(a)
+# MAG
+Apothic Set
+Ashenbone Abbasi
+Ashenbone Axe
+Ashenbone Shield
+Beckon
+Bloodmoon
+Briarzephyr
+# CLR
+Ethereal Mist Set
+Gardash
+# BRD
+Imbrued Platemail Set
+# WAR
+Indicolite Set
+# ENC
+Insidious Set
+
+# Highpass
+Cracked Darkwood Shield
+
+# Hole
+Bow of the Underfoot
+Brell's Girdle
+Earthen Blade
+Earthshaker
+Elemental Binder
+Empyran Jerkin
+Imbued Shield of Paineel
+
+# Jaggedpine
+Ancient Treant Wreath
+Bear Fanged Glove
+Blackguard's Dudgeon
+Boots of Stalking
+Bracer of Acuity
+Cloak of Shimmering Water
+Collar of Stalking
+Dew Woven Leggings
+Fiercewind
+Griffon Wing Cloak
+
+# Kedge
+Abalone Gorget
+Darksea Harpoon
+Hammerhead Helm
+
+# Kerra Isle
+Cat o' Nine Tails
+Fishbone Necklace
+Gorilla Hide Leggings
+Gorilla Hide Mask
+
+# Kithicor
+Blood Riven Axe
+Dreadskin Cloak
+
+# Lavastorm
+Bone Fingered Gloves
+Glowing Torch
+
+# LFay
+Braided Ivy Cords
+Crookstinger
+
+# Lguk
+Adamantite Band
+Adamantite Epaulets
+Amethyst Bracelet
+Azure Sleeves
+Braided Cinch Cord
+Brigandine Tunic
+Carved Ivory Mask
+Chrysoberyl Talisman
+Dark Mail Gauntlets
+Dark Reaver
+Ebony Bladed Sword
+Enameled Black Chestplate
+Executioner's Axe
+Executioners Hood
+Flowing Black Silk Sash
+Gilded Cloth
+Guise of the Deceiver
+
+# Mistmoore
+Black Silk Gloves
+Bloodstone Eyepatch
+Cape of Midnight Mist
+Chestplate of the Dark Flame
+Crested Helm
+Crested Mistmoore Shield
+Crested Spaulders
+Diamondine Earring
+Hooded Black Cloak
+
+# Nagafen's Lair
+Bladestopper
+Blight, Hammer of the Scourge
+Brown Chitin Protector
+Carnal Pauldrons
+Cloak of Flames
+Cloak of Shadows
+Crown of King Tranix
+Djarn's Amethyst Ring
+Fleshripper
+Gauntlets of Fiery Might
+Gold Plated Koshigatana
+Golden Chitin Bracer
+Golden Efreeti Boots
+Green Silken Drape
+Hierophant`s Crook
+
+# Najena
+Band of Flesh
+Barbed Leather Whip
+Black Tome with Silver Runes
+Dark Circlet
+Dull Wooden Spear
+Flowing Black Robe
+
+# North Karana
+Bear-hide Jerkin
+Giants Reminder String
+Griffon Talon Gloves
+Gypsy Medallion
+
+# North Qeynos
+Golden Locket = 13188
+
+# North Qeynos
+Blue Headband
+
+# Oceanoftears
+Ebon War Spear
+
+# Paw
+Dagger of Dropping
+Devlas Ilkvel
+Gnoll Hide Lariat
+
+# Permafrost
+Barbarian Hunting Spear
+Dented Brass Mask
+Dragon Bone Bracelet
+
+# qeynos2
+Aegis of Life
+
+# Qeynos Aqueduct
+Golden Locket = 10162
+
+# Qeynos Hills
+Cros Treewind's Staff
+Fishbone Earring
+Glowing Black Stone
+
+# Rathe Mountains
+Axe of the Slayers
+Granite Bracer
+
+# Runnyeye
+Beaded Slime Necklace
+Black Iron Girdle
+Black Iron Medallion
+Blackened Iron Coif
+Grotesque Mask
+
+# skyplane
+Aegis of the Wind
+Aldryn, Blade of the Ocean
+Al`Kabor's Cap of Binding
+Amulet of Planar Transference
+Arydryidriyorn
+Augmentor's Mask
+Azure Ruby Ring
+Band of Wailing Winds
+Belt of the Four Winds
+Blood Sky Face Plate
+Bloodsoaked Raiment
+Bloody Griffon-Hide Wrist Guard
+Dagas
+Dark Cloak of the Sky
+Djinni Finger Ring
+Djinni War Blade
+Drake-Hide Amice
+Drake-Hide Mask
+Duennan Shielding Ring
+Earring of Displacement
+Earthshaker's Mantle
+Ebonsting
+Espri
+Etched Ivory Charm
+Fae Amulet
+Fairy-Hide Mantle
+Fangol
+Garduk
+Girdle of Faith
+Gold White Pendant
+# ALL plate
+Golden Efreeti Set
+Golden Sash of Tranquility
+Gorgon Head Staff
+Griffon Wing Spauldors
+Harmonic Spear
+Honeycomb Belt
+
+# Solusek's Eye
+Charred Boots
+Charred Gauntlets
+Charred Guardian Breastplate
+Charred Guardian Shield
+Drake-hide Leggings
+Drake-hide Sleeves
+Drakescale Belt
+Foreman's Tunic
+Glowing Stone Band
+Impskin Gloves
+
+# South Karana
+Bark Shield
+Beartooth Necklace
+Cloak of Leaves
+# WAR
+Crafted Set
+- Crafted Wristband of Strife
+Crown of Leaves
+Feathered Leggings
+Interrogator's Badge
+
+# Uguk
+Bracelet of Woven Grass
+Elf-hide Gloves
+Ghoulbane
+
+# Unrest
+Bloodstained Mantle
+Bloodstained Tunic
+Dwarven Work Boots
+
+# West Freeport
+Boots of Brawn
+
+# West Karana
+Batfang Headband
+Batskull Earring
+Bone Armplates
+Bone Legplates
+Chipped Bone Bracelet
+Giant Snakespine Belt
+
+# Multiple
+Black Headband
+Blued Two-Handed Hammer
+Bonethunder Staff
+Burning Rapier
+Cutthroat Insignia Ring
+Disciple Symbol of Brell Serilis
+Disciple Symbol of Cazic-Thule
+Disciple Symbol of Innoruuk
+Dragoon Dirk
+Dread Forged Shield
+Electrum-Bladed Wakizashi
+Gem Inlaid Gauntlets
+Golden Ear Stud
+Gossamer Robe
+Hero Bracers
+Highway Protectors Mask
+Initiate Symbol of Bertoxxulous
+Initiate Symbol of Brell Serilis
+Initiate Symbol of Cazic-Thule
+Initiate Symbol of Innoruuk
+Initiate Symbol of Rallos Zek
+Initiate Symbol of the Tribunal
+
+# Tailoring
+Cured Silk Set
+
+# Not tied to a zone
+Iron Leash Collar
+Ivandyr's Hoop
+Ivory Bracelet
+Ivory Mask
+Ivy Etched Boots
+Ivy Etched Leggings
+Jagged Band
+Jagged Orc Slayer Sword
+Journeyman's Boots
+Karana's Tear = 12076
+Kedgemail Gauntlets
+Kerran Fishing Spear
+Kerran Headband
+Kerran Tribal Headband
+Kicsh Der Pavz
+Kobold-hide Boots
+Labyrinth Talisman
+Lamentation Blade
+Langseax
+Langseax of the Wolves
+Leatherfoot Raider Skullcap = 12259
+Leering Mask
+Lion-skin Leggings
+Lizardscale Cloak
+Lizardscale Mantle
+Lizardskin Tribal Mask
+# INT
+Loam Encrusted Set
+Lockjaw Hide Vest
+Long Fanged Glaive
+Lupine Claw Gauntlets
+Lupine Runed Armband
+Lustrous Russet Set
+Mammoth Hide Cloak
+Mammoth Hide Leggings
+Man-o-War
+Manastone
+Mane Attraction
+Mantle of the Songweaver
+Mask of Empowerment
+Mask of Song
+Medal of Merit
+Mempo of Likato
+Minotaur Ribcage
+Mithril Breastplate
+Mithril Feir`Dal Spear
+Mithril Greaves
+Mithril Knuckles
+Mithril Plated Girth
+Mithril Two-Handed Sword
+Mithril Vambraces
+Mithril-Runed Tunic
+Molten Cloak
+Monsoon, Sword of the Swiftwind
+Moonstone Ring
+Mortificator Staff
+Mroons Toy
+Mystic Cloak
+Mystical Back Straps
+Nargon's Staff
+Nature Walker's Mantle
+Nautilus Shield
+Necklace of Resolution
+Necklace of Whispering Winds
+Nightmare Hide
+Nightshade Wreath
+Noble's Robes
+Oakenfist Gloves
+Obsidian Bead Hoop
+Obsidian Flamberge
+Obsidian Ring
+Obsidian Scimitar
+Obsidian Shard = 7404
+Obtenebrate Mithril Guard
+Onyx Drakescale Cloak
+Onyx Earring
+Opalline Earring
+Orange Headband
+Orange Sash of Order
+Painbringer
+Partisan of Stampede
+Pauldrons of Piety
+Pearlescent Mask
+Pearlescent Pauldrons
+Pegasus Feather Cloak
+Pegasus-Hide Belt
+Petrified Erudite Heart Amulet
+Platinum Armband
+Platinum Tiara
+Polar Bear Cloak
+Polished Bone Bracelet
+Polished Granite Tomahawk
+Polished Mithril Mask
+Polished Mithril Torque
+Prayer Cloth of Tunare
+Prayer Shawl
+Prismatic Shield
+Pulsating Hyacinth Telesm
+Puppet Strings = 11643
+Purity Belt
+Qeynos Badge of Nobility
+Raiment of Thunder
+Rain Caller
+Rakusha Cloak
+# ROG
+Ravenscale Set
+Razing Sword of Skarlon
+Reaper of the Dead
+Red Dragonscale Armor
+Reed Belt
+Reed Ring
+Regent Symbol of Innoruuk
+Reserve Militia Tunic
+Rheumguls
+Ring of Goblin Lords
+Ring of Shadows
+Ring of the Dead = 13394
+Ring of Xorbb
+Robe of Discord
+Robe of the Ishva
+Robe of the Kedge
+Robe of the Lost Circle
+Robe of the Oracle
+Rod of the Protecting Winds
+Rokyls Channelling Crystal
+# The seven standard armour slots drop in the Classic Cazic Thule (cazicthule
+# v0) at 25% off named mobs -- the Tae Ew, the golems, Cazic Cenobite, the
+# Avatar of Fear -- via the TAKP loot program. The five below are the extended
+# slots (face, neck, shoulders, back, waist), which set armour did not have in
+# Classic; they exist only on the Legacy of Ykesha revamp's spawns (cazicthule
+# v1), so they are not gettable until LoY. Authentic, deliberately not "fixed".
+Rubicite Set
+- Rubicite Mask
+- Rubicite Collar
+- Rubicite Pauldron
+- Rubicite Cloak
+- Rubicite Waistband
+# SHM
+Rune Etched Set
+- Rune Etched Wedding Band
+- Rune-Etched Choker
+Runed Bolster Belt
+Runed Bone Fork
+Runed Circlet
+Runed Cowl
+Runed Lava Pendant
+Runed Mithril Bracer
+Runed Wind Amulet
+Runewood Shield
+Rusty Spiked Shoulderpads
+Sacrificial Dagger
+Sandals of Alacrity
+Sap Sheen Staff
+Sap Stained Gorget
+Shazda Turban
+Sheer Bone Mask
+Shield of Falsehood
+Shield of Prexus
+Shield of Rainbow Hues
+Shield of the Immaculate
+Shield of the Slain Unicorn
+Shield of the Stalwart Seas
+Shimmering Globe of the River
+Shimmering Orb
+Shining Metallic Robes
+Shiny Brass Shield
+# MNK
+Shiverback-hide Set
+Short Sword of the Ykesha
+Silent Watch Shield
+Silk Evening Tunic
+Silver-plated Leggings
+Silversilk Leggings
+Silvery Two Handed Axe
+Silvery War Axe
+Siryn Hair Hood
+Six Note Blade
+Skull-shaped Barbute
+Small Crafted Set
+Snakeskin Gloves
+Sode of Empowerment
+Soul Leech, Dark Sword of Blood
+Sphinx Eye Amulet
+Sphinx Hair Cord
+Sphinx Heart Amulet
+Spiked Collar
+Spined Dragon Claws
+Spiroc Healer's Cloak
+Spiroc Wingblade
+Spitestone Shield
+Split Paw Hide Gloves
+Split Paw Tooth Necklace
+Squad Ring = 13935
+Squad Ring = 13936
+Squallsurge Shawl
+Staff of Discord
+Staff of Elemental Mastery: Air
+Staff of Elemental Mastery: Earth
+Staff of Elemental Mastery: Fire
+Staff of Elemental Mastery: Water
+Staff of Forbidden Rites
+Staff of the Earthcrafter
+Staff of the Magister
+Staff of the Observers
+Staff of Undead Legions
+Stiletto of the Bloodclaw
+Stone Studded Shield
+Stormclaws
+Studded Leather Collar
+Symbol of Loyalty to Vox
+Symbol of Marr = 12800
+Syythrak Hide Vest
+Tentacle Whip
+Tesch Val Sinisch
+Thaumaturgist's Robe
+The Silver Nemesis
+Thex Dagger
+Thick Banded Belt
+# RNG
+Thorny Vine Set
+Thunderforged Earring
+Tiger Hide Gloves
+Tishan's Kilt
+Tobrin's Mystical Eyepatch
+Ton Po's Eye Patch
+Ton Po's Shoulder Wraps
+Topknot Headband
+# SHM
+Totemic Set
+Transparent Mask
+Traveler's Boots
+Treant Fists
+Treant Staff
+Trident of the Seven Seas
+Troll-hide Belt
+Trueheart Shield
+Trueshot Longbow
+Truewind Earring
+Truvinan
+Truwian Baton
+Tunarian Scimitar
+Turquoise Eyepatch
+Turtleshell Helm
+# SK
+Umbral Platemail Set
+Vacra Av Svim
+# PAL
+Valorium Set
+Vambraces of Ro
+# DRU
+Vermiculated Set
+Vermilion Sky Ring
+Vexthorne
+Warhammer of Divine Grace
+Watchman Boots
+Weight of the Gods
+Werewolf Skin Cloak
+Werewolf-hide Jerkin
+White Dragonscale Cloak
+White Gold Necklace
+White Wolf-hide Cloak
+Whitened Treant Fists
+Wind Walker's Mantle
+Windstriker
+Wispy Choker of Vigor
+Withered Leather Set
+Withered Totem of Widdershins
+Wolf Fur Slippers
+Wolf-hide Sleeves
+# ROG
+Woven Shadow Set
+Wu's Tranquil Fist
+Zaharn's Coronet
+Zephyrwind
+Burnoose of the Halfbreed
+Amulet of Necropotence
+Mask of Deception
+Collapsible Fishing Pole
+Mechanized Lockpicks
+Holy Cake
+Halas 10lb Meat Pie
+Fuzzlecutter Formula 5000

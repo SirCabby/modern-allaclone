@@ -14,7 +14,7 @@ class RecipeController extends Controller
     {
         $recipes = (new RecipeFilter($request))
             ->apply(TradeskillRecipe::query())
-            ->orderBy('name', 'asc')
+            ->sortable(['name' => 'asc'])
             ->paginate(50)
             ->withQueryString();
 

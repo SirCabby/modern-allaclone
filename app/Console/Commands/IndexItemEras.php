@@ -188,6 +188,10 @@ class IndexItemEras extends Command
 
         Cache::forget(ItemExpansion::ERAS_CACHE_KEY);
 
+        foreach (ItemExpansion::ORDERABLE as $column) {
+            Cache::forget(ItemExpansion::ORDER_CACHE_KEY . ".{$column}");
+        }
+
         $this->newLine();
         $this->info(sprintf('Indexed %d items', count($stored)));
         $this->table(
@@ -586,6 +590,17 @@ class IndexItemEras extends Command
     {
         $matched = 0;
 
+        // "Already dated" means dated before this pass began, not by this pass.
+        // Testing the live map instead lets the first row a walk happens to
+        // reach claim the item and shut every other one out, which is not "last
+        // resort" -- it is "whichever qsi.id came first". PEQ keeps a script per
+        // zone layout and the same NPC stands in both: Timtok Tonsmith takes
+        // Crafted plate in the Classic `commons` *and* in the Serpent's Spine
+        // `commonlands`, and reaching the second one first dated the whole
+        // Crafted set as TSS. Against the snapshot every row still gets to
+        // record(), which keeps the earliest of them.
+        $dated = $skip === null ? [] : $this->era;
+
         DB::table('quest_script_items as qsi')
             ->join('quest_scripts as qs', 'qs.id', '=', 'qsi.quest_script_id')
             ->where('qsi.kind', $kind)
@@ -593,7 +608,7 @@ class IndexItemEras extends Command
                 ->whereIntegerNotInRaw('qsi.quest_script_id', $this->blockedScripts))
             ->select('qsi.id', 'qsi.item_id', 'qs.zone', 'qs.relative_path')
             ->orderBy('qsi.id')
-            ->chunk(2000, function ($rows) use ($zoneEras, $source, $skip, &$matched) {
+            ->chunk(2000, function ($rows) use ($zoneEras, $source, $skip, $dated, &$matched) {
                 foreach ($rows as $row) {
                     $itemId = (int) $row->item_id;
 
@@ -603,7 +618,7 @@ class IndexItemEras extends Command
                         continue;
                     }
 
-                    if ($skip !== null && (isset($this->era[$itemId]) || isset($skip[$itemId]))) {
+                    if ($skip !== null && (isset($dated[$itemId]) || isset($skip[$itemId]))) {
                         continue;
                     }
 

@@ -30,7 +30,7 @@ class QuestController extends Controller
                 'items as reward_count' => fn ($q) => $q->where('kind', 'reward'),
                 'npcs',
             ])
-            ->orderBy('zone')
+            ->sortable(['zone' => 'asc'])
             ->orderBy('file_name')
             ->paginate(50)
             ->withQueryString();

@@ -1,22 +1,23 @@
 <input type="radio" name="zone_details" class="tab" aria-label="Tasks ({{ count($tasks) ?? 0 }})" />
 <div class="tab-content bg-base-100 border-base-300">
     <div class="border border-base-content/5 overflow-x-auto">
-        <table class="table table-auto md:table-fixed w-full table-zebra">
+        <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
             <thead class="text-xs uppercase bg-base-300">
                 <tr>
-                    <th scope="col" class="w-[30%]">Tasks</th>
-                    <th scope="col" class="w-[10%]">Steps</th>
-                    <th scope="col" class="w-[10%] hidden md:table-cell">Type</th>
-                    <th scope="col" class="w-[10%] hidden lg:table-cell truncate">Min Lvl</th>
-                    <th scope="col" class="w-[10%] hidden lg:table-cell truncate">Max Lvl</th>
-                    <th scope="col" class="w-[10%] hidden md:table-cell">Repeat</th>
+                    <th scope="col" class="w-[30%]" data-sort>Tasks</th>
+                    <th scope="col" class="w-[10%]"
+                        @if (config('everquest.tasks.display.activities')) data-sort="number" @endif>Steps</th>
+                    <th scope="col" class="w-[10%] hidden md:table-cell" data-sort>Type</th>
+                    <th scope="col" class="w-[10%] hidden lg:table-cell truncate" data-sort="number">Min Lvl</th>
+                    <th scope="col" class="w-[10%] hidden lg:table-cell truncate" data-sort="number">Max Lvl</th>
+                    <th scope="col" class="w-[10%] hidden md:table-cell" data-sort="number">Repeat</th>
                     <th scope="col" class="w-[20%]">Rewards</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($tasks as $task)
                     <tr>
-                        <td scope="row">
+                        <td scope="row" data-sort-value="{{ $task->title }}">
                             <div class="flex flex-col">
                                 {{ $task->title }}
                                 <span class="text-xs uppercase text-gray-500">
@@ -37,7 +38,7 @@
                         <td class="hidden md:table-cell">{{ $task->task_type }}</td>
                         <td class="hidden lg:table-cell">{{ $task->min_level }}</td>
                         <td class="hidden lg:table-cell">{{ $task->max_level }}</td>
-                        <td class="hidden md:table-cell">
+                        <td class="hidden md:table-cell" data-sort-value="{{ (int) (bool) $task->repeatable }}">
                             {!! $task->repeatable
                                 ? '<span class="badge badge-soft badge-accent">Yes</span>'
                                 : '<span class="badge badge-soft badge-warning">No</span>' !!}

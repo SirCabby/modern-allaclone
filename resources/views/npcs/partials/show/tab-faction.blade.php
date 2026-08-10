@@ -3,11 +3,11 @@
 <div class="tab-content bg-base-100 border-base-300">
     <div class="border border-base-content/5 overflow-x-auto">
         @if ($raisesFaction)
-            <table class="table table-auto md:table-fixed w-full table-zebra">
+            <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
                 <thead class="text-xs uppercase bg-base-300">
                     <tr>
-                        <th scope="col" class="w-[90%]">Faction raised by killing this npc</th>
-                        <th scope="col" class="w-[10%]">Value</th>
+                        <th scope="col" class="w-[90%]" data-sort>Faction raised by killing this npc</th>
+                        <th scope="col" class="w-[10%]" data-sort="number">Value</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -29,11 +29,11 @@
         @endif
 
         @if ($lowersFaction)
-            <table class="table table-auto md:table-fixed w-full table-zebra">
+            <table class="table table-auto md:table-fixed w-full table-zebra" data-sortable>
                 <thead class="text-xs uppercase bg-base-300">
                     <tr>
-                        <th scope="col" class="w-[90%]">Faction lowered by killing this npc</th>
-                        <th scope="col" class="w-[10%]">Value</th>
+                        <th scope="col" class="w-[90%]" data-sort>Faction lowered by killing this npc</th>
+                        <th scope="col" class="w-[10%]" data-sort="number">Value</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -119,6 +119,49 @@ changes. `ITEM_ERAS_INDEX_ON_BOOT=true` runs it at container start, after `quest
 docker exec modern-allaclone php artisan items:index-eras
 ```
 
+### Loading a list on item search
+
+The **List** picker at the top of the item search pins the whole search to a named set of
+items: with one loaded, every other filter narrows *within* it and nothing outside it can
+come back. A banner above the results says which list is loaded, since the search panel
+remembers being closed — without it a search over 693 items looks like a search over all
+118,000 that is quietly missing things.
+
+A list is a text file in `resources/item-lists/`, one per list, named by *items* rather
+than ids because that is the form a list arrives in. `php artisan items:index-lists`
+resolves the names against `peq` into `item_lists` / `item_list_items` in sqlite, and the
+filter inlines the ids the same way the era checklist does.
+
+| Line | Means |
+| --- | --- |
+| `@title <name>` | what the picker calls this list; the slug is the filename |
+| `# ...` | a comment — only at the start of a line, since item names carry `#` themselves ("Room Key # 6") |
+| `<name>` | one item. Case and punctuation are ignored on both sides: backtick against apostrophe and hyphen against space are how a hand-written list drifts from `peq`, and neither ever distinguishes two items. |
+| `<name> Set` | every worn piece whose name starts with `<name>` — unless an item is really called "`<name>` Set", which then wins; a hundred of those exist |
+| `<name> = <id>` | pin an exact `peq.items.id`, for a name two items share |
+| `- <name>` | drop a piece the `Set` line above it pulled in by mistake |
+
+Names are not unique, which is most of what this command is for. `peq` carries later
+re-issues of classic gear under the same name — four "Mithril Vambraces", a level 85
+"Cloak of Flames" — and occasionally two genuinely different items share one: the Golden
+Locket that drops in the Qeynos aqueduct is not the Golden Locket the North Qeynos quest
+hands you. **The era index breaks the tie**: a re-issue is obtainable nowhere, so
+`items:index-eras` never reached it, and the row it did reach is the one the list means.
+That is why this runs *after* it, and why it warns when the era index is empty. Where that
+still leaves two real items, the entry is reported rather than guessed at and wants a pin.
+
+Anything that cannot be resolved is named with its file and line number, left out of the
+index, and counted at the end — the command still succeeds, so one bad line in a list does
+not abort a refresh.
+
+Not era-gated either: a list says which items it is about, which does not change with what
+the server is running. The files ship in the image, so this runs on every container start
+rather than behind a flag.
+
+```bash
+docker exec modern-allaclone php artisan items:index-lists
+```
+
 ## Quest scripts
 
 EQEmu keeps quests as Perl/Lua on disk, so a stock allaclone shows no quest information at
@@ -174,21 +217,22 @@ Two things to know when a reward does not show up:
 
 ## Rebuilding site data
 
-Five things sit between an edit and what the site shows, and not one of them expires on its own
+Six things sit between an edit and what the site shows, and not one of them expires on its own
 in any useful timeframe — each just keeps serving the old answer. `make refresh` is all of them,
 in the only order that works:
 
 ```bash
-make refresh    # rebuild -> migrate -> quests:index -> items:index-eras -> cache:clear
+make refresh    # rebuild -> migrate -> quests:index -> items:index-eras -> items:index-lists -> cache:clear
 ```
 
 The rebuild is first because `opcache.validate_timestamps=0` means the image is the only code
 php reads; the migrate follows it for the volume reason in the note below; the era index reads
-quest rewards, so it follows the quest index; and the page cache is dropped last, so the pages
+quest rewards, so it follows the quest index; the list index settles same-named items by which
+one the era index reached, so it follows that; and the page cache is dropped last, so the pages
 rebuilt after it read the new indexes.
 
 Data-only stages are still available one at a time as `make index-quests` / `make index-eras` /
-`make cache-clear`, for when nothing but `peq` or `quests/` moved.
+`make index-lists` / `make cache-clear`, for when nothing but `peq` or `quests/` moved.
 
 From the stack this browser follows (`akk-stack-live` by default), the same three stages are
 available as `make allaclone-refresh`, which additionally no-ops unless this container is
@@ -196,6 +240,9 @@ attached to the stack being operated on — so a dev migration will not claim to
 browser that follows live. `make migrate-up` / `migrate-down` (and the experiments channel)
 already call it themselves, so a dbmate migration needs nothing extra. Run it by hand after
 editing quest scripts, which the database never sees.
+
+`items:index-lists` is deliberately not in that path: the list files ship in the image, so the
+container start that follows any rebuild indexes them anyway, and nothing else moves them.
 
 `items:index-eras` is the only stage that costs real time. `ALLACLONE_SKIP_ERAS=1` drops it when
 you know nothing an item's era depends on moved (spawns, merchants, loot, forage/fishing/ground,
