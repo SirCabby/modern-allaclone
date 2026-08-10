@@ -80,27 +80,36 @@ class QuestScript extends Model
     }
 
     /**
-     * How this script treats an item, for the badge on the item page.
+     * How this script treats an item, for the badges on the item page.
      *
-     * One script can reference the same item several ways -- an NPC that takes
-     * a breastplate and later hands it back has it as both -- and once turn-ins
-     * are grouped by branch it can do so several times over. Hand-in wins,
-     * because it is the more specific claim.
+     * One script can reference the same item several ways, and a two-step quest
+     * routinely does: the Crushbone elven priest pays a Prayer Cloth of Tunare
+     * for the orc warlord's bracers, then takes the cloth back with a dwarven
+     * mace to enchant. Collapsing that to one kind is choosing which half of
+     * the quest to hide, and hand-in winning hid the reward -- the only place
+     * the item comes from. 680 items were reading as pure turn-in components
+     * with no source anywhere on their page.
+     *
+     * So every kind the script really has is returned, reward first: where an
+     * item comes from is the question the page is usually being asked.
+     * `mentioned` is the indexer's fallback for an item it saw but could not
+     * attribute, so it only speaks when nothing more specific did.
      *
      * Reads whatever `items` is loaded with, so scope the eager load to the
      * item you are asking about (see forItem()).
+     *
+     * @return string[] in display order
      */
-    public function kindOfItem(): string
+    public function kindsOfItem(): array
     {
         $kinds = $this->items->pluck('kind');
 
-        foreach (['handin', 'reward'] as $kind) {
-            if ($kinds->contains($kind)) {
-                return $kind;
-            }
-        }
+        $found = array_values(array_filter(
+            ['reward', 'handin'],
+            fn ($kind) => $kinds->contains($kind)
+        ));
 
-        return 'mentioned';
+        return $found ?: ['mentioned'];
     }
 
     public function npcs(): HasMany

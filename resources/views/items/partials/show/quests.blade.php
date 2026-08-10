@@ -4,7 +4,6 @@
     <div class="divider">This item appears in quest scripts</div>
     <ul role="list" class="list bg-base-300 divide-y divide-base-200">
         @foreach ($questScripts as $script)
-            @php $kind = $script->kindOfItem(); @endphp
             <li class="flex justify-between items-center gap-x-6 px-3 py-2">
                 <div class="min-w-0 flex-auto">
                     <p class="text-sm/6 font-semibold text-neutral-content">
@@ -22,14 +21,18 @@
                             title="View quest script">{{ $script->relative_path }}</a>
                     </p>
                 </div>
-                <div class="shrink-0">
-                    @if ($kind === 'handin')
-                        <span class="badge badge-sm badge-warning">Hand-in</span>
-                    @elseif ($kind === 'reward')
-                        <span class="badge badge-sm badge-success">Reward</span>
-                    @else
-                        <span class="badge badge-sm badge-ghost">Mentioned</span>
-                    @endif
+                {{-- A script that both pays out an item and takes it back gets a
+                     badge for each; see QuestScript::kindsOfItem(). --}}
+                <div class="shrink-0 flex flex-wrap justify-end gap-1">
+                    @foreach ($script->kindsOfItem() as $kind)
+                        @if ($kind === 'handin')
+                            <span class="badge badge-sm badge-warning">Hand-in</span>
+                        @elseif ($kind === 'reward')
+                            <span class="badge badge-sm badge-success">Reward</span>
+                        @else
+                            <span class="badge badge-sm badge-ghost">Mentioned</span>
+                        @endif
+                    @endforeach
                 </div>
             </li>
         @endforeach
