@@ -389,15 +389,27 @@ class IndexQuests extends Command
     /**
      * Every turn-in check in the script, numbered from 1 in source order.
      *
-     * Only the keyed forms count as items: perl writes `1234 => 1` and lua
-     * `{item1 = 1234}`, while a bare number in the same call is a quantity or,
-     * in `{gold = 25000}`, a pile of coin that happens to look like an item id.
+     * Four spellings, because the tree is thirty years of them and they all
+     * still run: `plugin::check_handin(\%itemcount, ...)` is the bulk of it,
+     * `quest::handin({...})` / `eq.handin({...})` are the native calls that
+     * replaced it, and `quest::takeItems(...)` is the shorthand. Matching only
+     * the plugin is what left both Darkforge armourers -- who are on the native
+     * call -- with three rewards attributed to no turn-in at all, and their
+     * decayed-armour turn-ins recorded as nothing more than names in a comment.
+     * QuestNarrator already reads all four; this is the same list.
+     *
+     * Only the keyed forms count as items: perl writes `1234 => 1`, lua writes
+     * `{item1 = 1234}` or `{[1234] = 1}`, while a bare number in the same call
+     * is a quantity or, in `{gold = 25000}` and `{"platinum" => 100}`, a pile of
+     * coin that happens to look like an item id.
      *
      * @return array<int, array{branch: int, offset: int, end: int, items: int[]}>
      */
     private function turnInBranches(string $body): array
     {
-        if (!preg_match_all('/\b(?:check_handin|check_turn_in)\s*\(/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+        $call = '/\b(?:check_handin|check_turn_in|handin|take_?items?)\s*\(/i';
+
+        if (!preg_match_all($call, $body, $m, PREG_OFFSET_CAPTURE)) {
             return [];
         }
 
@@ -413,7 +425,11 @@ class IndexQuests extends Command
 
             $items = [];
 
-            foreach (['/(\d+)\s*=>\s*\d+/', '/\bitem\d*\s*=\s*(\d+)/i'] as $re) {
+            foreach ([
+                '/(\d+)\s*=>\s*\d+/',
+                '/\bitem\d*\s*=\s*(\d+)/i',
+                '/\[\s*(\d+)\s*\]\s*=\s*\d+/',
+            ] as $re) {
                 if (preg_match_all($re, $args, $mm)) {
                     $items = array_merge($items, array_map('intval', $mm[1]));
                 }

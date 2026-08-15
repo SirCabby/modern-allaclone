@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class Zone extends Model
 {
@@ -38,6 +39,64 @@ class Zone extends Model
     public function taskActivities(): HasMany
     {
         return $this->hasMany(TaskActivity::class, 'zones', 'zoneidnumber');
+    }
+
+    /**
+     * The name to print for this row.
+     *
+     * A short_name can have several versions live at once and each one is its
+     * own page with its own spawns -- Omens runs three `chambersa` rows, all
+     * of them named "Muramite Proving Grounds" -- so where that happens the
+     * version goes in the name. v0 is labelled too: it is only "the" zone when
+     * nothing else shares its short_name, and leaving it bare would make it
+     * the one version a visitor cannot name.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if (!$this->hasSiblingVersions()) {
+            return (string) $this->long_name;
+        }
+
+        return $this->long_name . ' (v' . (int) $this->version . ')';
+    }
+
+    /** Whether another version of this zone is live in the presented era. */
+    public function hasSiblingVersions(): bool
+    {
+        return in_array($this->short_name, self::multiVersionShortNames(), true);
+    }
+
+    /** The zone's other live versions, earliest first. */
+    public function otherLiveVersions(): Collection
+    {
+        if (!$this->hasSiblingVersions()) {
+            return collect();
+        }
+
+        return self::liveQuery()
+            ->where('short_name', $this->short_name)
+            ->where('id', '<>', $this->id)
+            ->orderBy('version')
+            ->get();
+    }
+
+    /**
+     * The short_names running more than one version in the presented era.
+     *
+     * Which zones those are moves with the era -- `cazicthule` is a single
+     * zone until Ykesha parks the revamp beside the original -- so the era is
+     * part of the key, as it is for the zone index.
+     */
+    public static function multiVersionShortNames(): array
+    {
+        $era = ContentFilter::currentExpansion();
+
+        return Cache::remember("zones.multiversion.e{$era}", now()->addDay(), fn () => self::liveQuery()
+            ->get()
+            ->groupBy('short_name')
+            ->filter(fn (Collection $versions) => $versions->count() > 1)
+            ->keys()
+            ->all());
     }
 
     public static function getExpansionZones(): Collection

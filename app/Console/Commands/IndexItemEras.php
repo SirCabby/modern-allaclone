@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\DB;
  *   quest     the *last* of the script's zone and the turn-ins that branch
  *             asks for -- collecting a reward in Qeynos for a Velious drop
  *             does not make it Classic (sqlite quest index)
+ *   task      the same, over the zones a task's own steps send you to and the
+ *             items they ask for (tasks + task_activities)
  *   recipe    the era of the recipe's *last* component -- you need all of them,
  *             so a Kunark bar in a Classic recipe makes the product Kunark
  *
@@ -145,6 +147,9 @@ class IndexItemEras extends Command
     /** quest_script_ids whose NPC never spawns; see blockedQuestScripts(). */
     private array $blockedScripts = [];
 
+    /** zoneidnumber => short_name, memoised by zoneShortNames(). */
+    private ?array $zoneShortNames = null;
+
     public function handle(): int
     {
         $this->maxEra = max(array_keys(config('everquest.expansions')));
@@ -163,23 +168,32 @@ class IndexItemEras extends Command
 
         $this->blockedScripts = $this->blockedQuestScripts();
 
-        $rewards = $this->loadQuestRewards($zoneEras);
+        $quested = $this->loadQuestRewards($zoneEras);
+        $tasked = $this->loadTaskRewards($zoneEras);
+        $rewards = array_merge($quested, $tasked);
         $recipes = $this->loadRecipes();
 
-        // Turn-ins are also a last resort for dating the items themselves (see
-        // indexQuestHandins), and both fixpoints feed on whatever is dated
-        // already, so it all interleaves: components and turn-in costs first,
-        // so an unplaced one cannot stall what it gates, then the fixpoints,
-        // then whatever they could not reach, then one more round for the
-        // recipes and quests those unblock. Nothing here overwrites an era, so
-        // the extra rounds can only add coverage.
-        $handins = $this->indexQuestHandins($zoneEras, $this->derivedItems($rewards, $recipes));
+        // Turn-ins and task objectives are also a last resort for dating the
+        // items themselves (see indexQuestHandins), and both fixpoints feed on
+        // whatever is dated already, so it all interleaves: components and
+        // turn-in costs first, so an unplaced one cannot stall what it gates,
+        // then the fixpoints, then whatever they could not reach, then one more
+        // round for the recipes and quests those unblock. Nothing here
+        // overwrites an era, so the extra rounds can only add coverage.
+        $derived = $this->derivedItems($rewards, $recipes);
+        $handins = $this->indexQuestHandins($zoneEras, $derived);
+        $objectives = $this->indexTaskObjectives($zoneEras, $derived);
         [$quests, $crafted] = $this->indexDerived($rewards, $recipes);
         $handins += $this->indexQuestHandins($zoneEras, []);
+        $objectives += $this->indexTaskObjectives($zoneEras, []);
         [$more, $extra] = $this->indexDerived($rewards, $recipes);
 
-        $this->line(sprintf('  %-9s %6d rewards (from %d turn-ins)', 'quest', $quests + $more, count($rewards)));
+        $this->line(sprintf(
+            '  %-9s %6d rewards (from %d quest branches and %d task payouts)',
+            'reward', $quests + $more, count($quested), count($tasked)
+        ));
         $this->line(sprintf('  %-9s %6d references', 'handin', $handins));
+        $this->line(sprintf('  %-9s %6d objectives', 'objective', $objectives));
         $this->line(sprintf('  %-9s %6d products (from %d recipes)', 'recipe', $crafted + $extra, count($recipes)));
 
         $this->applyIntrinsicFloors();
@@ -514,7 +528,7 @@ class IndexItemEras extends Command
      *
      * Scripts under quests/global belong to no zone and are skipped.
      *
-     * @return array<int, array{item_id: int, zone: string, zone_era: int, gates: int[]}>
+     * @return array<int, array{item_id: int, source: string, zone: ?string, zone_era: int, gates: int[]}>
      */
     private function loadQuestRewards(array $zoneEras): array
     {
@@ -550,6 +564,7 @@ class IndexItemEras extends Command
 
                     $rewards[] = [
                         'item_id' => (int) $row->item_id,
+                        'source' => 'quest',
                         'zone' => $row->zone,
                         'zone_era' => $zoneEra,
                         'gates' => $costs["{$row->quest_script_id}:{$row->branch}"] ?? [],
@@ -558,6 +573,185 @@ class IndexItemEras extends Command
             });
 
         return $rewards;
+    }
+
+    /**
+     * Every item an enabled task pays out, with what the task costs.
+     *
+     * A task is a quest peq does know about, and it is dated the same way -- a
+     * zone floor for where the work happens, raised by whatever the steps ask
+     * you to bring. Only the shape of the data differs, and the site had no
+     * route through it at all: the Gloomingdeep tutorial armour, the Plane of
+     * Knowledge watchmaker's reward chain and the Drakkin ancestral armour are
+     * handed out by nothing else, so all three read as items with no era.
+     *
+     * You have to finish every step, so the zone floor is the *latest* zone the
+     * task sends you to -- Scouting Blackburrow runs through Blackburrow and
+     * reports back in the Plane of Knowledge, which makes it Planes of Power
+     * content whatever Blackburrow is. Optional steps are not a floor: the
+     * reward does not depend on them.
+     *
+     * Where the task is offered is a floor too, and the only one for a task
+     * whose steps name no zone. That half is the *earliest* offer, since any
+     * one of them hands you the task. Only the on-disk quest index knows this:
+     * a taskselector() call lives in a Perl file, not in the tasks table.
+     *
+     * @return array<int, array{item_id: int, source: string, zone: ?string, zone_era: int, gates: int[]}>
+     */
+    private function loadTaskRewards(array $zoneEras): array
+    {
+        $floors = [];   // task id => ['era' => int, 'zone' => string], latest step
+        $gates = [];    // task id => item ids its steps ask for
+
+        $this->peq('task_activities as ta')
+            ->join('tasks as t', 't.id', '=', 'ta.taskid')
+            ->where('t.enabled', 1)
+            ->where('ta.optional', 0)
+            ->orderBy('ta.taskid')
+            ->orderBy('ta.activityid')
+            ->select('ta.taskid', 'ta.zones', 'ta.zone_version', 'ta.item_id_list')
+            ->chunk(5000, function ($rows) use ($zoneEras, &$floors, &$gates) {
+                foreach ($rows as $row) {
+                    $taskId = (int) $row->taskid;
+
+                    foreach ($this->idList($row->item_id_list) as $item) {
+                        $gates[$taskId][$item] = true;
+                    }
+
+                    $step = $this->taskZoneEra($zoneEras, $row);
+
+                    if ($step !== null && $step['era'] > ($floors[$taskId]['era'] ?? -1)) {
+                        $floors[$taskId] = $step;
+                    }
+                }
+            });
+
+        $offers = $this->taskOfferEras($zoneEras);
+        $rewards = [];
+
+        foreach ($this->peq('tasks')->where('enabled', 1)->orderBy('id')->get(['id', 'reward_id_list']) as $task) {
+            $taskId = (int) $task->id;
+            $floor = $floors[$taskId] ?? null;
+            $offer = $offers[$taskId] ?? null;
+
+            if ($offer !== null && $offer['era'] > ($floor['era'] ?? -1)) {
+                $floor = $offer;
+            }
+
+            if ($floor === null) {
+                continue;
+            }
+
+            foreach ($this->idList($task->reward_id_list) as $item) {
+                $rewards[] = [
+                    'item_id' => $item,
+                    'source' => 'task',
+                    'zone' => $floor['zone'],
+                    'zone_era' => $floor['era'],
+                    'gates' => array_keys($gates[$taskId] ?? []),
+                ];
+            }
+        }
+
+        return $rewards;
+    }
+
+    /**
+     * The earliest zone any script offers a task in, keyed by task id.
+     *
+     * Blocked scripts are dropped rather than blocking the task: a task is
+     * offered from several NPCs as often as not, and one of them being behind a
+     * flag says nothing about the rest.
+     *
+     * @return array<int, array{era: int, zone: string}>
+     */
+    private function taskOfferEras(array $zoneEras): array
+    {
+        $offers = [];
+
+        DB::table('quest_script_tasks as qst')
+            ->join('quest_scripts as qs', 'qs.id', '=', 'qst.quest_script_id')
+            ->where('qst.kind', 'offer')
+            ->when($this->blockedScripts, fn ($query) => $query
+                ->whereIntegerNotInRaw('qst.quest_script_id', $this->blockedScripts))
+            ->select('qst.task_id', 'qs.zone', 'qs.relative_path')
+            ->orderBy('qst.id')
+            ->chunk(2000, function ($rows) use ($zoneEras, &$offers) {
+                foreach ($rows as $row) {
+                    $era = $this->questZoneEra($zoneEras, $row->zone, $row->relative_path);
+
+                    if ($era === null || $era >= ($offers[(int) $row->task_id]['era'] ?? PHP_INT_MAX)) {
+                        continue;
+                    }
+
+                    $offers[(int) $row->task_id] = ['era' => $era, 'zone' => $row->zone];
+                }
+            });
+
+        return $offers;
+    }
+
+    /**
+     * The era one task step takes place in, or null where it names no zone this
+     * index recognises -- `zones` is empty on the steps you can do anywhere.
+     *
+     * The column holds a zoneidnumber rather than a short name, and `zones` and
+     * `zone_version` together pick a version the same way a spawn does: -1 is
+     * "any version", which keeps the zone's earliest era.
+     *
+     * @return ?array{era: int, zone: string}
+     */
+    private function taskZoneEra(array $zoneEras, object $activity): ?array
+    {
+        $found = null;
+
+        foreach ($this->idList($activity->zones) as $zoneId) {
+            $short = $this->zoneShortNames()[$zoneId] ?? null;
+
+            if ($short === null || !isset($zoneEras[$short])) {
+                continue;
+            }
+
+            $era = $zoneEras[$short]['versions'][(int) $activity->zone_version]
+                ?? $zoneEras[$short]['era'];
+
+            if ($era > ($found['era'] ?? -1)) {
+                $found = ['era' => $era, 'zone' => $short];
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * zoneidnumber => short_name, over the zones zoneEras() will answer for.
+     * Built once; the task tables reference zones by number and nothing else
+     * here does.
+     *
+     * @return array<int, string>
+     */
+    private function zoneShortNames(): array
+    {
+        return $this->zoneShortNames ??= ContentFilter::applyFlags(DB::connection('eqemu')->table('zone'))
+            ->where('expansion', '<', self::NOT_AN_ERA)
+            ->whereNotIn('short_name', config('everquest.ignore_zones') ?? [])
+            ->orderBy('zoneidnumber')
+            ->pluck('short_name', 'zoneidnumber')
+            ->map(fn ($name) => (string) $name)
+            ->all();
+    }
+
+    /**
+     * The ids in one of peq's packed task columns. `reward_id_list` and
+     * `item_id_list` are '|' separated and read '0' when they hold nothing.
+     *
+     * @return int[]
+     */
+    private function idList(?string $list): array
+    {
+        $ids = array_map('intval', preg_split('/[|,;\s]+/', (string) $list, -1, PREG_SPLIT_NO_EMPTY));
+
+        return array_values(array_unique(array_filter($ids, fn ($id) => $id > 0)));
     }
 
     /**
@@ -579,6 +773,75 @@ class IndexItemEras extends Command
     private function indexQuestHandins(array $zoneEras, array $crafted): int
     {
         return $this->indexQuestItems($zoneEras, 'handin', 'handin', $crafted);
+    }
+
+    /**
+     * `task_activities.activitytype` values that name a step you complete by
+     * taking an item out of the world, which makes the step's zone a placement.
+     * From the emulator's TaskActivityType (common/tasks.h).
+     *
+     * Deliver (1) is deliberately absent, and it is the common case -- 431 rows
+     * against 324. It is a turn-in, and reading one as a source is wrong for
+     * exactly the reason indexQuestHandins() gives: Storm Dragon Scales are
+     * looted off the Storm Caller in Stillmoon Temple and carried to a ranger
+     * standing in Lavastorm, and a walk that reads the delivery calls a Dragons
+     * of Norrath drop Classic. Where a task's steps *send* you is a floor under
+     * the reward (see loadTaskRewards); only where they let you pick something
+     * up says anything about that item.
+     */
+    private const OBTAINING_ACTIVITIES = [
+        3,  // Loot
+        7,  // Fish
+        8,  // Forage
+    ];
+
+    /**
+     * The items a task's own steps tell you to go and find.
+     *
+     * A collection step is the task system's version of a loot table -- "loot 4
+     * Storm Dragon Scales in Stillmoon Temple" places the item as surely as
+     * lootdrop_entries does -- but the item is usually a quest token nothing
+     * else in the database carries, so this only fills in what is still
+     * undated rather than competing for the earliest answer.
+     *
+     * @param  array<int, true> $skip products to leave to the reward pass
+     * @return int references consumed
+     */
+    private function indexTaskObjectives(array $zoneEras, array $skip): int
+    {
+        $matched = 0;
+
+        // Snapshot, for the reason indexQuestItems() spells out: testing the
+        // live map lets whichever row a walk reaches first shut out every other.
+        $dated = $this->era;
+
+        $this->peq('task_activities as ta')
+            ->join('tasks as t', 't.id', '=', 'ta.taskid')
+            ->where('t.enabled', 1)
+            ->whereIn('ta.activitytype', self::OBTAINING_ACTIVITIES)
+            ->orderBy('ta.taskid')
+            ->orderBy('ta.activityid')
+            ->select('ta.zones', 'ta.zone_version', 'ta.item_id_list')
+            ->chunk(2000, function ($rows) use ($zoneEras, $skip, $dated, &$matched) {
+                foreach ($rows as $row) {
+                    $step = $this->taskZoneEra($zoneEras, $row);
+
+                    if ($step === null) {
+                        continue;
+                    }
+
+                    foreach ($this->idList($row->item_id_list) as $itemId) {
+                        if (isset($dated[$itemId]) || isset($skip[$itemId])) {
+                            continue;
+                        }
+
+                        $this->record($itemId, $step['era'], 'objective', $step['zone']);
+                        $matched++;
+                    }
+                }
+            });
+
+        return $matched;
     }
 
     /**
@@ -683,7 +946,8 @@ class IndexItemEras extends Command
     }
 
     /**
-     * Quest rewards and crafted items, resolved together to a fixpoint.
+     * Rewards -- quest and task alike -- and crafted items, resolved together
+     * to a fixpoint.
      *
      * Both are the same shape of problem: you cannot have the thing until you
      * have everything it takes, so its era is the *latest* of them -- max(),
@@ -708,7 +972,7 @@ class IndexItemEras extends Command
             foreach ($rewards as $reward) {
                 $era = $this->prerequisiteEra($reward['gates'], $reward['zone_era']);
 
-                if ($era !== null && $this->record($reward['item_id'], $era, 'quest', $reward['zone'])) {
+                if ($era !== null && $this->record($reward['item_id'], $era, $reward['source'], $reward['zone'])) {
                     $changed++;
                     $quests++;
                 }
@@ -748,7 +1012,7 @@ class IndexItemEras extends Command
         foreach ($rewards as $reward) {
             $fallback = $this->knownEra($reward['gates'], $reward['zone_era']);
 
-            if ($this->record($reward['item_id'], $fallback, 'quest', $reward['zone'])) {
+            if ($this->record($reward['item_id'], $fallback, $reward['source'], $reward['zone'])) {
                 $quests++;
             }
         }

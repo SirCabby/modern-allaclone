@@ -21,6 +21,49 @@ class ZoneViewModel
         $this->version = $version;
     }
 
+    /**
+     * Everything zones.show renders for one zone row, in the shape the page
+     * cache stores.
+     *
+     * The controller and `app:cache-zones` both build the page through here so
+     * a warmed entry is what the request would have built. They had drifted:
+     * the warmer skipped the content filter on zone points, so warming wrote
+     * connections into unopened zones under the key the request reads.
+     *
+     * The version comes off the row rather than the caller, because the row is
+     * already a version -- `paw` v0 and v1 are separate ids -- and any link
+     * that reached the page without repeating it in the query string used to
+     * get v0's spawns.
+     */
+    public static function payload(int $zoneId): array
+    {
+        $zone = Zone::findOrFail($zoneId);
+        $version = (int) $zone->version;
+
+        $zone->load(['zonepoints' => function ($q) use ($version) {
+            ContentFilter::apply($q);
+            $q->when($version > 0, fn ($q) => $q->where('version', $version))
+                ->groupBy('target_zone_id')
+                // Constraining the target hides connections into zones the
+                // presented era has not opened yet.
+                ->with(['targetZones' => fn ($z) => ContentFilter::applyZone($z)
+                    ->select('id', 'zoneidnumber', 'short_name', 'long_name', 'expansion')]);
+        }]);
+
+        $vm = new self($zone, $version);
+
+        return [
+            'zone' => $zone,
+            'npcs' => $vm->npcs(),
+            'drops' => $vm->drops(),
+            'spawnGroups' => $vm->spawnGroups(),
+            'foraged' => $vm->foraged(),
+            'fished' => $vm->fished(),
+            'connectedZones' => $vm->connectedZones(),
+            'tasks' => $vm->tasks(),
+        ];
+    }
+
     public function connectedZones(): Collection
     {
         return $this->zone->zonepoints

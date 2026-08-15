@@ -35,37 +35,17 @@ class CacheZones extends Command
         $this->info("Starting zone cache warming for {$zones->count()} zones...");
 
         foreach ($zones as $zone) {
-            $version = $zone->version;
+            $version = (int) $zone->version;
             // Key must match ZoneController::show(), era suffix included.
             $cacheKey = "zones.show.{$zone->id}_v{$version}_e{$currentExpansion}";
 
             // forget any previous cache we may have
             Cache::forget($cacheKey);
 
-            // cache forever since this data rarely changes.
-            Cache::rememberForever($cacheKey, function () use ($zone, $version) {
-                $zone = Zone::where('id', $zone->id)
-                    ->with('zonepoints', function ($q) use ($version) {
-                        $q->when($version > 0, fn ($q) => $q->where('version', $version))
-                          ->groupBy('target_zone_id')
-                          ->with('targetZones:id,zoneidnumber,short_name,long_name');
-                    })
-                    ->when($version > 0, fn ($q) => $q->where('version', $version))
-                    ->firstOrFail();
-
-                $vm = new ZoneViewModel($zone, $version);
-
-                return [
-                    'zone' => $zone,
-                    'npcs' => $vm->npcs(),
-                    'drops' => $vm->drops(),
-                    'spawnGroups' => $vm->spawnGroups(),
-                    'foraged' => $vm->foraged(),
-                    'fished' => $vm->fished(),
-                    'connectedZones' => $vm->connectedZones(),
-                    'tasks' => $vm->tasks(),
-                ];
-            });
+            // cache forever since this data rarely changes. Built through the
+            // same payload the controller uses, so warming cannot write a
+            // different page than the request would have.
+            Cache::rememberForever($cacheKey, fn () => ZoneViewModel::payload($zone->id));
 
             $this->line("Cached: {$cacheKey} -- {$zone->short_name} / {$zone->id}-{$zone->version}");
         }

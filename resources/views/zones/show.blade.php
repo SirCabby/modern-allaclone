@@ -1,13 +1,12 @@
 @extends('layouts.default')
 
-@php
-    $title = $zone->long_name . ' (' . $zone->short_name . ')';
-    if ($zone->version) {
-        $title .= ' - v' . $zone->version;
-    }
-@endphp
 @section('title')
-    {{ $title ?? 'Zone' }}
+    {{ $zone->long_name }} ({{ $zone->short_name }})
+    {{-- Only worth a badge when another version of the zone is live: on its own
+         "v0" says nothing, beside a v1 it says which page you are on. --}}
+    @if ($zone->hasSiblingVersions())
+        <span class="badge badge-soft badge-accent align-middle">Version {{ $zone->version }}</span>
+    @endif
     <x-entity-id :id="$zone->zoneidnumber" label="Zone ID" />
 @endsection
 
@@ -64,6 +63,20 @@
                                 class="text-accent">{{ $zone->zone_exp_multiplier * 100 }}%</span>
                         </span>
                     </div>
+                    @if ($otherVersions->isNotEmpty())
+                        <div class="flex flex-col">
+                            <p class="text-sm text-base-content">
+                                <strong>Other Versions:</strong>
+                                @foreach ($otherVersions as $otherVersion)
+                                    <a href="{{ route('zones.show', $otherVersion->id) }}"
+                                        title="{{ $otherVersion->long_name }}"
+                                        class="link link-hover link-accent">
+                                        v{{ $otherVersion->version }}
+                                    </a>{{ !$loop->last ? ',' : '' }}
+                                @endforeach
+                            </p>
+                        </div>
+                    @endif
                     @if ($connectedZones->isNotEmpty())
                         <div class="flex flex-col">
                             <p class="text-sm text-base-content">

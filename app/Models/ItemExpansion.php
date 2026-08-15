@@ -48,6 +48,8 @@ class ItemExpansion extends Model
         'ground' => 'a ground spawn',
         'quest' => 'a quest script',
         'handin' => 'turned in for a quest',
+        'task' => 'a task reward',
+        'objective' => 'collected for a task',
         'recipe' => 'a tradeskill recipe',
         'ldon' => 'an LDoN adventure merchant',
     ];

@@ -14,16 +14,16 @@
                 <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                     @foreach ($zones as $val)
                         <li>
-                            <a href="{{ route('zones.show', $val->id) }}{{ $val->version > 0 ? '?v=' . $val->version : '' }}"
+                            <a href="{{ route('zones.show', $val->id) }}"
                                 class="block hover:bg-base-200 rounded p-2 transition">
+                                {{-- display_name carries the version where this era runs more than
+                                     one of the zone; the row's id already picks the version, so the
+                                     link needs no ?v=. --}}
                                 <div class="text-base text-base-content">
-                                    {{ $val->long_name }}
+                                    {{ $val->display_name }}
                                 </div>
                                 <div class="text-xs text-base-content/50 text-muted uppercase">
                                     {{ $val->short_name }}
-                                    @if ($val->version > 0)
-                                        <span class="text-accent">(v{{ $val->version }})</span>
-                                    @endif
                                     @if ($val->zone_exp_multiplier)
                                         - <span class="text-primary">{{ $val->zone_exp_multiplier * 100 }}% exp</span>
                                     @endif

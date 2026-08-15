@@ -82,9 +82,11 @@ Imbrued Platemail Set
 Indicolite Set
 # ENC
 Insidious Set
+Mithril Boots = 1099
 
 # Highpass
 Cracked Darkwood Shield
+Zap Doodle Tonic
 
 # Hole
 Bow of the Underfoot
@@ -220,6 +222,9 @@ Aegis of Life
 # Qeynos Aqueduct
 Golden Locket = 10162
 Paw of Opolla
+# peq also carries "PrayerBeads" (13911), a Classic quest reward out of West
+# Karana that the resolver cannot tell apart -- spacing is ignored on both sides
+Prayer Beads = 13296
 
 # Qeynos Hills
 Cros Treewind's Staff
@@ -228,6 +233,7 @@ Glowing Black Stone
 
 # Rathe Mountains
 Axe of the Slayers
+Bootstrutter's Framed Pack
 Granite Bracer
 
 # Runnyeye
@@ -275,6 +281,7 @@ Gorgon Head Staff
 Griffon Wing Spauldors
 Harmonic Spear
 Honeycomb Belt
+Renard's Belt of Quickness
 
 # Solusek's Eye
 Charred Boots
@@ -300,8 +307,41 @@ Feathered Leggings
 Interrogator's Badge
 
 # Temple of Solusek Ro
+Acumen Mask
+Boots of the Reliant
+Bracers of the Reverent
+Broom of Trilon
+Caduceus of Sacrament
+Chestplate of the Constant
+Circlet of Mist
+Clay Bracelet
+Cracked Leather Belt = 20992
 # SK
 Darkforge Set
+Earthen Boots
+Gauntlets of the Ardent
+Greaves of the Penitent
+Harvester
+Incandescent Gloves
+Incandescent Mask
+Incandescent Wand
+# PAL
+Lambent Set
+- Lambent Earring of Melded Iron
+Robe of the Elements
+Robe of the Seeker
+Rod of Insidious Glamour
+Runescale Cloak
+ShadowBound Boots
+ShadowBound Gloves
+Shield of the Devout
+Shovel of Ponz
+Staff of Temperate Flux
+Stein of Ulissa
+Torch of Alna
+Vambraces of the Fervent
+Weeping Wand
+Words of Darkness
 
 # Uguk
 Bracelet of Woven Grass

@@ -47,7 +47,8 @@
                             <td>
                                 <div class="flex flex-col">
                                     @if (is_object($zone) && \App\Support\ContentFilter::zoneInEra($zone))
-                                        <a href="{{ route('zones.show', $zone->id) }}{{ $zone->version > 0 ? '?v=' . $zone->version : '' }}"
+                                        {{-- The zone row's own id picks the version, so no ?v= --}}
+                                        <a href="{{ route('zones.show', $zone->id) }}"
                                             class="text-base link-info link-hover">
                                             {{ $zone->long_name }}
                                         </a>

@@ -10,6 +10,7 @@ use App\Models\FactionList;
 use App\Models\QuestScript;
 use App\Models\Task;
 use App\Models\TradeskillRecipe;
+use App\Support\ContentFilter;
 use Illuminate\Http\Request;
 
 class SearchController extends Controller
@@ -71,16 +72,32 @@ class SearchController extends Controller
                     ];
                 })
             )->merge(
+                // One suggestion per version, not per short_name: a zone can
+                // run several versions at once and each is a separate page
+                // with its own spawns, so grouping them hid all but one. The
+                // era gate keeps that from filling the list with the versions
+                // this era has not opened -- 16 of `thenest` alone in Dragons
+                // of Norrath.
                 Zone::where(function ($query) use ($q, $qId) {
                     $query->where('long_name', 'like', "%{$q}%")
                         ->orWhere('short_name', 'like', "%{$q}%")
                         ->orWhereRaw('CAST(zoneidnumber AS CHAR) LIKE ?', ["%{$qId}%"]);
                 })
                     ->whereNotIn('short_name', config('everquest.ignore_zones', []))
-                    ->groupBy('short_name', 'long_name')->limit(5)->get()->map(function ($z) {
+                    ->tap(fn ($query) => ContentFilter::applyZone($query))
+                    // short_name before version so a zone's versions stay
+                    // together: six separate zones share the long_name
+                    // "Muramite Proving Grounds", and sorting on the name
+                    // alone interleaves them and truncates every zone's
+                    // later versions off the end of the list.
+                    ->orderBy('long_name')
+                    ->orderBy('short_name')
+                    ->orderBy('version')
+                    ->limit(10)->get()->map(function ($z) {
                         return [
                             'type' => 'zone',
-                            'name' => $z->long_name,
+                            'name' => $z->display_name,
+                            'sub' => $z->short_name,
                             'url' => route('zones.show', $z->id),
                             'id' => 'zone-' . $z->id
                         ];

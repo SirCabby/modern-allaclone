@@ -35,8 +35,16 @@
                     <template x-for="result in results" :key="result.id">
                         <li class="hover:bg-base-100 cursor-pointer rounded p-1 px-2 transition">
                             <a :href="result.url" class="flex justify-between items-center space-x-2">
-                                <span class="block text-sm text-base-content truncate"
-                                    x-text="result.name"></span>
+                                {{-- `sub` is the entity's own short handle -- a zone's short_name --
+                                     kept beside the name rather than inside it. --}}
+                                <span class="flex items-baseline gap-1 min-w-0">
+                                    <span class="block text-sm text-base-content truncate"
+                                        x-text="result.name"></span>
+                                    <template x-if="result.sub">
+                                        <span class="text-xs uppercase text-base-content/50 whitespace-nowrap"
+                                            x-text="result.sub"></span>
+                                    </template>
+                                </span>
                                 <span class="text-xs text-accent whitespace-nowrap"
                                     :class="{
                                         'text-soft-accent': result.type === 'zone',
