@@ -110,9 +110,21 @@
         </div>
     </div>
 
-    <div class="flex w-full flex-col">
-        <div class="divider uppercase text-sm text-base-content/70">Script</div>
-    </div>
+    {{-- Walkthrough first: it is what the page is usually being asked. The
+         script stays one click away, and is still the authority. --}}
+    <div class="tabs tabs-lift">
+        <input type="radio" name="quest_view" class="tab" aria-label="Walkthrough"
+            {{ $walkthrough->hasScenes() ? 'checked' : '' }} />
+        <div class="tab-content bg-base-100 border-base-300">
+            <div class="p-3">
+                @include('quests.partials.show.walkthrough')
+            </div>
+        </div>
 
-    <pre class="text-xs overflow-x-auto bg-base-300 p-3 rounded max-h-[48rem] overflow-y-auto"><code>{{ $quest->body() ?? 'Script file is not readable from the container. Check the quests bind mount.' }}</code></pre>
+        <input type="radio" name="quest_view" class="tab" aria-label="Script"
+            {{ $walkthrough->hasScenes() ? '' : 'checked' }} />
+        <div class="tab-content bg-base-100 border-base-300">
+            <pre class="text-xs overflow-x-auto bg-base-300 p-3 rounded max-h-[48rem] overflow-y-auto"><code>{{ $body ?? 'Script file is not readable from the container. Check the quests bind mount.' }}</code></pre>
+        </div>
+    </div>
 @endsection

@@ -60,8 +60,11 @@
     }
 }
 
-.sort-ascending,
-.sort-descending {
+/* A sortable header carries one of three icons: `sort` at rest, `sort-ascending`
+   or `sort-descending` once it has been clicked. Both the client-side tables
+   (see app.js) and @sortablelink name them -- column-sortable builds the sorted
+   ones by appending its asc/desc suffix to the resting `sort-icon sort`. */
+.sort-icon {
     display: inline-block;
     width: 1rem;
     height: 1rem;
@@ -77,6 +80,20 @@
 
 .link-accent + .sort-icon {
     background-color: var(--color-secondary, oklch(var(--a)));
+}
+
+/* The resting state has to draw something: a column nobody has clicked yet is
+   the state every column is in on load, and without an icon there the whole
+   table reads as static. Dimmed so the column actually being sorted on still
+   stands out from the ones merely offering to be. */
+.sort-icon.sort {
+    opacity: 0.4;
+    -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l4 -4l4 4" /><path d="M7 5l0 14" /><path d="M13 15l4 4l4 -4" /><path d="M17 5l0 14" /></svg>');
+    mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l4 -4l4 4" /><path d="M7 5l0 14" /><path d="M13 15l4 4l4 -4" /><path d="M17 5l0 14" /></svg>');
+}
+
+th:hover .sort-icon.sort {
+    opacity: 0.75;
 }
 
 .sort-ascending {

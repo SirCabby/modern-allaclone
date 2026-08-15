@@ -23,7 +23,9 @@
                 <tr>
                     <th scope="col" class="w-[20%]" data-sort>Name</th>
                     <th scope="col" class="w-[10%]" data-sort>Class</th>
-                    <th scope="col" class="w-[40%]">Effect(s)</th>
+                    {{-- Sorts on the effect text as rendered, which groups the
+                         spells that do the same thing together. --}}
+                    <th scope="col" class="w-[40%]" data-sort>Effect(s)</th>
                     <th scope="col" class="w-[10%] hidden lg:table-cell" data-sort="number">Mana</th>
                     <th scope="col" class="w-[10%] hidden md:table-cell" data-sort>Skill</th>
                     <th scope="col" class="w-[10%] hidden lg:table-cell" data-sort>Target Type</th>

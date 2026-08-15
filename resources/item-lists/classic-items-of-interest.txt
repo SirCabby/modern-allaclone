@@ -34,6 +34,10 @@ Elven Charm Necklace
 # Crushbone
 Bracers of Battle
 Dwarven Ringmail Tunic
+Screaming Mace
+
+# Dagnor's Cauldron
+Shiny Golden Coin
 
 # Everfrost
 Bloody Dirk
@@ -107,6 +111,7 @@ Griffon Wing Cloak
 Abalone Gorget
 Darksea Harpoon
 Hammerhead Helm
+Pearl Kedge Totem
 
 # Kerra Isle
 Cat o' Nine Tails
@@ -193,6 +198,9 @@ Golden Locket = 13188
 # North Qeynos
 Blue Headband
 
+# North Ro
+Scute Shield
+
 # Oceanoftears
 Ebon War Spear
 
@@ -211,6 +219,7 @@ Aegis of Life
 
 # Qeynos Aqueduct
 Golden Locket = 10162
+Paw of Opolla
 
 # Qeynos Hills
 Cros Treewind's Staff
@@ -290,6 +299,10 @@ Crown of Leaves
 Feathered Leggings
 Interrogator's Badge
 
+# Temple of Solusek Ro
+# SK
+Darkforge Set
+
 # Uguk
 Bracelet of Woven Grass
 Elf-hide Gloves
@@ -299,6 +312,7 @@ Ghoulbane
 Bloodstained Mantle
 Bloodstained Tunic
 Dwarven Work Boots
+Thick Leather Apron
 
 # West Freeport
 Boots of Brawn
@@ -310,6 +324,7 @@ Bone Armplates
 Bone Legplates
 Chipped Bone Bracelet
 Giant Snakespine Belt
+Order of Thunder = 13287
 
 # Multiple
 Black Headband

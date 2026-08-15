@@ -13,6 +13,7 @@ use App\Models\Zone;
 use Illuminate\Http\Request;
 use App\Support\ContentFilter;
 use App\Models\QuestScript;
+use App\ViewModels\QuestWalkthroughViewModel;
 
 class NpcController extends Controller
 {
@@ -206,6 +207,13 @@ class NpcController extends Controller
             ->with(['items.item', 'tasks.task'])
             ->get();
 
+        // The same walkthrough the quest page shows, so what an NPC actually
+        // wants can be read here rather than a click away. Reading the script
+        // is cached against its own bytes, so this costs the id lookups only.
+        $walkthroughs = $questScripts->mapWithKeys(fn ($script) => [
+            $script->id => new QuestWalkthroughViewModel($script, $script->body()),
+        ]);
+
         // Tasks those scripts drive, deduped across scripts by strongest kind
         // (a task offered by one script and referenced by another is an offer).
         // Only scripts this NPC owns count: forNpc() also returns scripts that
@@ -259,6 +267,7 @@ class NpcController extends Controller
             'altCurrency' => $altCurrency,
             'discoveredItems' => $discoveredItems,
             'questScripts' => $questScripts,
+            'walkthroughs' => $walkthroughs,
             'scriptTasks' => $scriptTasks,
             'taskObjectives' => $taskObjectives,
             'questCount' => $questCount,

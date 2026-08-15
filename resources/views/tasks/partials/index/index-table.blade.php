@@ -8,7 +8,7 @@
                 <th scope="col" class="w-[10%] hidden lg:table-cell truncate">@sortablelink('min_level', 'Min Lvl')</th>
                 <th scope="col" class="w-[10%] hidden lg:table-cell truncate">@sortablelink('max_level', 'Max Lvl')</th>
                 <th scope="col" class="w-[10%] hidden md:table-cell">@sortablelink('repeatable', 'Repeat')</th>
-                <th scope="col" class="w-[20%]">Rewards</th>
+                <th scope="col" class="w-[20%]">@sortablelink('rewards', 'Rewards')</th>
             </tr>
         </thead>
         <tbody>

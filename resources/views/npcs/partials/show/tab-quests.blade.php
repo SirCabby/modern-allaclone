@@ -67,11 +67,22 @@
                     </div>
                 @endif
 
+                @php($walkthrough = $walkthroughs[$script->id] ?? null)
+                @if ($walkthrough?->hasScenes())
+                    <div class="collapse collapse-arrow">
+                        <input type="checkbox" />
+                        <div class="collapse-title text-sm font-medium">What this script does</div>
+                        <div class="collapse-content">
+                            @include('quests.partials.show.walkthrough')
+                        </div>
+                    </div>
+                @endif
+
                 <div class="collapse collapse-arrow">
                     <input type="checkbox" />
                     <div class="collapse-title text-sm font-medium">View script</div>
                     <div class="collapse-content">
-                        <pre class="text-xs overflow-x-auto bg-base-300 p-3 rounded max-h-[32rem] overflow-y-auto"><code>{{ $script->body() ?? 'Script file is not readable from the container. Check the quests bind mount.' }}</code></pre>
+                        <pre class="text-xs overflow-x-auto bg-base-300 p-3 rounded max-h-[32rem] overflow-y-auto"><code>{{ $walkthrough?->body() ?? 'Script file is not readable from the container. Check the quests bind mount.' }}</code></pre>
                     </div>
                 </div>
             </div>

@@ -11,7 +11,7 @@
                     <th scope="col" class="w-[10%] hidden lg:table-cell truncate" data-sort="number">Min Lvl</th>
                     <th scope="col" class="w-[10%] hidden lg:table-cell truncate" data-sort="number">Max Lvl</th>
                     <th scope="col" class="w-[10%] hidden md:table-cell" data-sort="number">Repeat</th>
-                    <th scope="col" class="w-[20%]">Rewards</th>
+                    <th scope="col" class="w-[20%]" data-sort>Rewards</th>
                 </tr>
             </thead>
             <tbody>
@@ -43,7 +43,23 @@
                                 ? '<span class="badge badge-soft badge-accent">Yes</span>'
                                 : '<span class="badge badge-soft badge-warning">No</span>' !!}
                         </td>
-                        <td class="task-rewards text-base-content/50">
+                        {{-- Sorts on what the cell reads down from -- the first
+                             item it pays out, or the coin/exp it pays instead --
+                             so the tasks that reward nothing sink to the bottom
+                             whichever way the column points. --}}
+                        @php
+                            $rewardSort = '';
+                            if (config('everquest.tasks.display.rewards')) {
+                                $rewardSort = ($task->reward_id_list ? $task->rewards->first()?->Name : null)
+                                    ?? match (true) {
+                                        $task->cash_reward > 0 => 'Coin',
+                                        $task->exp_reward > 0 => 'Exp',
+                                        $task->reward_points > 0 && $task->reward_point_type => 'Currency',
+                                        default => '',
+                                    };
+                            }
+                        @endphp
+                        <td class="task-rewards text-base-content/50" data-sort-value="{{ $rewardSort }}">
                             @if (config('everquest.tasks.display.rewards'))
                                 @if ($task->reward_id_list)
                                     @foreach ($task->rewards as $item)

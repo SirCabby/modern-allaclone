@@ -28,18 +28,25 @@ class FactionController extends Controller
             return FactionList::orderBy('name', 'asc')->get();
         });
 
+        // Listing every npc_type rather than one per name doubles what this
+        // hydrates -- Heretics alone reaches 27k NPCs over 63k spawn entries --
+        // and all the page wants out of that chain is the zone's name and id.
+        // Constraining the columns keeps the wide zone and spawn2 rows out of
+        // memory; the join keys have to stay in the select or the relations
+        // cannot match up.
         $npcs = NpcType::with([
             'npcFactionEntries' => function ($q) use ($faction) {
                 $q->where('faction_id', $faction->id)
                     ->select('npc_faction_id', 'faction_id', 'value');
             },
-            'spawnEntries.spawn2.zoneData'
+            'spawnEntries:npcID,spawngroupID',
+            'spawnEntries.spawn2:spawngroupID,zone',
+            'spawnEntries.spawn2.zoneData:id,short_name,long_name',
         ])
             ->whereHas('npcFactionEntries', function ($q) use ($faction) {
                 $q->where('faction_id', $faction->id);
             })
             ->select('id', 'name', 'npc_faction_id')
-            ->groupBy('name')
             ->get()
             ->unique('id')
             ->sortBy(function ($npc) {
@@ -61,6 +68,14 @@ class FactionController extends Controller
             'raised' => collect(),
             'lowered' => collect(),
         ];
+
+        // Several npc_types share a name -- Befallen alone has eight "a
+        // shadowknight" -- and grouping the query by name kept exactly one of
+        // them for the whole faction, so the same name hit in a second zone
+        // vanished from that zone's list. The list is per zone, and a row only
+        // says name and value, so the collapse belongs here: identical rows
+        // inside one zone fold together, the same name in another zone stays.
+        $seen = [];
 
         foreach ($npcs as $npc) {
             foreach ($npc->npcFactionEntries as $entry) {
@@ -87,6 +102,13 @@ class FactionController extends Controller
 
                 $type = $value > 0 ? 'raised' : 'lowered';
                 $zoneKey = $zoneId . '|' . $zoneName;
+                $rowKey = $zoneKey . '|' . $npc->clean_name . '|' . $value;
+
+                if (isset($seen[$rowKey])) {
+                    continue;
+                }
+
+                $seen[$rowKey] = true;
 
                 $factions[$type]->push([
                     'zone_key' => $zoneKey,

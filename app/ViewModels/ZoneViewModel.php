@@ -60,10 +60,16 @@ class ZoneViewModel
             ->whereDoesntHave('spawnentries')
             ->get();
 
+        // Zones routinely hold several npc_types sharing a name -- Befallen has
+        // eight "a shadowknight" at different levels, races and loot tables --
+        // so the list keys on id. Collapsing by name hid the duplicates here
+        // and, because drops() reads its loot tables off this list, silently
+        // dropped their loot from the Drops tab too. Level breaks the sort tie
+        // so the same-named rows read low to high.
         return $query
             ->merge($query2)
-            ->unique('name')
-            ->sortBy(fn ($npc) => $npc->clean_name)
+            ->unique('id')
+            ->sortBy(fn ($npc) => [$npc->clean_name, $npc->level])
             ->values();
     }
 

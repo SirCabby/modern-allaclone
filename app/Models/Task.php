@@ -24,6 +24,8 @@ class Task extends Model
         'repeatable',
         // not a column: the activity count withCount() hangs on the row
         'steps',
+        // not a column: assembled from the reward list and the coin/exp beside it
+        'rewards',
     ];
 
     protected $connection = 'eqemu';
@@ -32,6 +34,27 @@ class Task extends Model
     public function stepsSortable($query, $direction)
     {
         return $query->orderBy('task_activities_count', $direction);
+    }
+
+    /**
+     * Order the way the Rewards column reads: the first item the task pays out,
+     * or the coin/exp/currency it pays instead. reward_id_list is a '|' separated
+     * string that is '0' when there is no item, so the head of it casts to an id
+     * that matches nothing rather than needing a separate emptiness test.
+     *
+     * Tasks that reward nothing sort last in both directions -- a page of blanks
+     * at the top is not a result either way, which is what the same column does
+     * client-side on the zone page.
+     */
+    public function rewardsSortable($query, $direction)
+    {
+        $raw = "COALESCE("
+            . "(SELECT Name FROM items WHERE items.id = CAST(SUBSTRING_INDEX(tasks.reward_id_list, '|', 1) AS UNSIGNED)),"
+            . " CASE WHEN tasks.cash_reward > 0 THEN 'Coin'"
+            . " WHEN tasks.exp_reward > 0 THEN 'Exp'"
+            . " WHEN tasks.reward_points > 0 AND tasks.reward_point_type > 0 THEN 'Currency' END)";
+
+        return $query->orderByRaw("{$raw} IS NULL, {$raw} {$direction}");
     }
 
     public function getTaskTypeAttribute(): string

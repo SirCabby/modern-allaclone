@@ -7,6 +7,7 @@ use App\Models\NpcType;
 use App\Models\QuestScript;
 use App\Models\Zone;
 use App\Support\ContentFilter;
+use App\ViewModels\QuestWalkthroughViewModel;
 use Illuminate\Http\Request;
 
 class QuestController extends Controller
@@ -47,6 +48,10 @@ class QuestController extends Controller
     {
         $quest->load(['items.item', 'npcs.npc', 'tasks.task']);
 
+        // Read once: the walkthrough and the Script tab are two views of the
+        // same file, and it is only on disk.
+        $body = $quest->body();
+
         // The NPC that owns the script; peq lives on another connection so this
         // is a straight lookup, not a relation.
         $npc = $quest->npc_id
@@ -72,6 +77,8 @@ class QuestController extends Controller
         return view('quests.show', [
             'zones' => $this->liveZones(),
             'quest' => $quest,
+            'body' => $body,
+            'walkthrough' => new QuestWalkthroughViewModel($quest, $body),
             'npc' => $npc,
             'zone' => $zone,
             'siblings' => $siblings,
