@@ -399,6 +399,7 @@ Ivandyr's Hoop
 Ivory Bracelet
 Ivory Mask
 Ivy Etched Boots
+Ivy Etched Gauntlets
 Ivy Etched Leggings
 Jagged Band
 Jagged Orc Slayer Sword
@@ -548,6 +549,8 @@ Sacrificial Dagger
 Sandals of Alacrity
 Sap Sheen Staff
 Sap Stained Gorget
+Serpentine Bracer
+Serrated Bone Dirk
 Shazda Turban
 Sheer Bone Mask
 Shield of Falsehood

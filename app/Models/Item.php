@@ -45,6 +45,7 @@ class Item extends Model
         'heroic_wis',
         'attack',
         'delay',
+        'range',
         'regen',
         'manaregen',
         'enduranceregen',

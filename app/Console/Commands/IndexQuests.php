@@ -457,13 +457,23 @@ class IndexQuests extends Command
      * thousand of the lua scripts pay out, and summonitem() alone misses all
      * of them.
      *
+     * The id may be quoted. Perl does not care -- `quest::summonitem("17917")`
+     * and `quest::summonitem(17917)` are the same call -- and a hundred of the
+     * older scripts write it the first way, which is a dialect QuestNarrator
+     * has always read (see its number(), "quotes and whitespace and all") and
+     * this did not. A script whose rewards all went unseen contributes nothing
+     * but its `# items:` header, so its items fall through to 'mentioned' and
+     * the era index has no route to them: Emil Parsini hands out the
+     * Peacekeeper Staff and Treant Resin in Classic `tox`, and with that file
+     * reading as empty both dated from his Serpent's Spine twin in `toxxulia`.
+     *
      * @return array<int, array{0: int, 1: int}> [item_id, offset]
      */
     private function rewardReferences(string $body): array
     {
         $found = [];
 
-        if (preg_match_all('/\b(?:summonitem|additem)\s*\(\s*(\d+)/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+        if (preg_match_all('/\b(?:summonitem|additem)\s*\(\s*[\'"]?(\d+)/i', $body, $m, PREG_OFFSET_CAPTURE)) {
             foreach ($m[1] as [$id, $at]) {
                 $found[] = [(int) $id, $at];
             }

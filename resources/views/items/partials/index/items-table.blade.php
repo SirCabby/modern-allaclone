@@ -1,5 +1,4 @@
 @php
-    $reserved = ['ac','hp','damage','delay','ratio'];
     $activeStats = array_values(array_filter([
         request('stat1'),
         request('stat2'),
@@ -25,6 +24,7 @@
                 ['key' => 'damage', 'label' => 'DMG'],
                 ['key' => 'delay', 'label' => 'Delay'],
                 ['key' => 'ratio', 'label' => 'Ratio'],
+                ['key' => 'range', 'label' => 'Range'],
             ]
         ),
         ['key' => 'potency', 'label' => 'Potency'],
@@ -99,6 +99,9 @@
                 @endif
                 @if (!in_array('ratio', $activeStats))
                     <th scope="col" data-col="ratio" class="w-[5%] hidden md:table-cell">@sortablelink('ratio', 'Ratio')</th>
+                @endif
+                @if (!in_array('range', $activeStats))
+                    <th scope="col" data-col="range" class="w-[5%] hidden md:table-cell">@sortablelink('range', 'Range')</th>
                 @endif
                 <th scope="col" data-col="potency" class="w-[7%] hidden md:table-cell">@sortablelink('potency', 'Potency')</th>
                 <th scope="col" data-col="click" class="w-[8%] hidden md:table-cell">@sortablelink('clicktype', 'Click')</th>
@@ -221,6 +224,12 @@
                         <td data-col="ratio" class="hidden md:table-cell">
                             {{ $item->damage > 0 ? number_format($item->delay / $item->damage, 2) : '-' }}
                         </td>
+                    @endif
+                    {{-- Bows, thrown weapons and arrows are the only things that
+                         carry one; peq stores 0 for everything else, which is a
+                         reach of nothing rather than a reach of zero. --}}
+                    @if (!in_array('range', $activeStats))
+                        <td data-col="range" class="hidden md:table-cell">{{ $item->range > 0 ? $item->range : '-' }}</td>
                     @endif
                     {{-- The number, so the column sorts and reads as one; the
                          wording it maps to ("Feast", "Flowing Drink") is on

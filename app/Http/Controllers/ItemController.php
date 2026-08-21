@@ -53,6 +53,8 @@ class ItemController extends Controller
 
             $query->select([
                 'id', 'Name', 'icon', 'ac', 'hp', 'damage', 'delay',
+                // how far a bow, a throwing weapon or an arrow reaches
+                'range',
                 'augtype', 'bagslots', 'bagwr',
                 // consumables carry their strength in casttime_
                 'casttime_',

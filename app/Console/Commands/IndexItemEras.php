@@ -1132,13 +1132,25 @@ class IndexItemEras extends Command
      * keeps its zone and label, since it is still where the thing is handed
      * over; only the date it implied was wrong.
      *
-     * The flag is on the weapon and on nothing else, so the twenty-odd pieces a
-     * chain is assembled from carry none of this by themselves -- and those are
-     * exactly the pieces staged in old-world zones. Innoruuk's Curse is put
-     * together in City of Mist, but its Head of the Valiant is handed over in
-     * Paineel for a head looted in The Hole, and every zone in that sentence is
-     * Classic. So the floor is walked back down the chain as well, over the
-     * steps the chain is the only route to -- see epicChainItems().
+     * The flag stops at the weapon, and so does this. The floor used to be
+     * walked back down the chain as well, over every scripted step behind an
+     * epic -- and that was the wrong question. Being consumed by a later quest
+     * is not a way of coming into existence: SoulFire is a Classic paladin
+     * sword Brother Hayle has handed out since launch, and Kunark turning up
+     * later and asking for it does not move it. Neither does it move the four
+     * Classic robes behind the Cazic Quill, the Rebreather you are given free
+     * in Lake Rathetear, or the sixty-odd Classic-zone steps of the bard and
+     * dwarf chains. This is the same principle indexQuestHandins() already
+     * holds to in the other direction -- what an item is handed *into* says
+     * nothing about when you could first hold it -- and the walk-back was the
+     * one place the index argued the opposite.
+     *
+     * What that costs is real and accepted: a step whose only reason to exist
+     * is an epic now dates from the Classic zone PEQ stages it in, so the Head
+     * of the Valiant reads Classic off its Paineel hand-over. An era that is
+     * too early is the same error every other unscripted chain already makes,
+     * and it is the honest one -- the database says Classic zone, Classic mob,
+     * Classic turn-in, and nothing in it says otherwise.
      */
     private function applyEpicFloor(): void
     {
@@ -1148,102 +1160,23 @@ class IndexItemEras extends Command
             return;
         }
 
-        $epics = [];
         $raised = 0;
 
-        $raise = function (int $itemId) use ($kunark, &$raised) {
-            if (!isset($this->era[$itemId]) || $this->era[$itemId] >= $kunark) {
-                return;
-            }
-
-            $this->era[$itemId] = $kunark;
-            $raised++;
-        };
-
         $this->peq('items')->where('epicitem', 1)->orderBy('id')->select('id')
-            ->chunk(2000, function ($rows) use ($raise, &$epics) {
+            ->chunk(2000, function ($rows) use ($kunark, &$raised) {
                 foreach ($rows as $row) {
-                    $epics[(int) $row->id] = true;
-                    $raise((int) $row->id);
+                    $itemId = (int) $row->id;
+
+                    if (!isset($this->era[$itemId]) || $this->era[$itemId] >= $kunark) {
+                        continue;
+                    }
+
+                    $this->era[$itemId] = $kunark;
+                    $raised++;
                 }
             });
-
-        foreach (array_keys($this->epicChainItems($epics)) as $itemId) {
-            // A step something outside the chain also hands you is datable on
-            // its own terms -- a Classic gem an epic asks for really is Classic,
-            // and an epic asking for it does not move it. Only the steps whose
-            // sole route is the chain itself inherit the floor.
-            if (!in_array($this->source[$itemId] ?? null, ['quest', 'handin'], true)) {
-                continue;
-            }
-
-            $raise($itemId);
-        }
 
         $this->line(sprintf('  %-9s %6d items raised to Kunark', 'epic', $raised));
-    }
-
-    /**
-     * Every scripted step behind an epic, walked back from the weapon itself.
-     *
-     * A branch's rewards are what you get for handing over what it asks for, so
-     * the pairs the quest index already records *are* the chain: the things a
-     * branch rewarding an epic asks for are the step before it, the things
-     * rewarding those are the step before that, and so on to the start.
-     *
-     * Branch 0 is what a script gives away for talking to it, which nothing is
-     * a prerequisite for, so a walk that reaches it simply stops.
-     *
-     * @param  array<int, true> $epics the flagged weapons to walk back from
-     * @return array<int, true> the steps behind them, weapons excluded
-     */
-    private function epicChainItems(array $epics): array
-    {
-        $rewardedBy = [];   // item id => the "script:branch" keys handing it out
-        $asks = [];         // "script:branch" => the item ids it wants
-
-        DB::table('quest_script_items')
-            ->where('branch', '>', 0)
-            ->whereIn('kind', ['reward', 'handin'])
-            ->select('quest_script_id', 'branch', 'item_id', 'kind')
-            ->orderBy('id')
-            ->chunk(5000, function ($rows) use (&$rewardedBy, &$asks) {
-                foreach ($rows as $row) {
-                    $branch = "{$row->quest_script_id}:{$row->branch}";
-
-                    if ($row->kind === 'reward') {
-                        $rewardedBy[(int) $row->item_id][] = $branch;
-                    } else {
-                        $asks[$branch][] = (int) $row->item_id;
-                    }
-                }
-            });
-
-        $seen = $epics;
-        $frontier = array_keys($epics);
-        $chain = [];
-
-        while ($frontier) {
-            $next = [];
-
-            foreach ($frontier as $itemId) {
-                foreach ($rewardedBy[$itemId] ?? [] as $branch) {
-                    foreach ($asks[$branch] ?? [] as $required) {
-                        if (isset($seen[$required])) {
-                            continue;
-                        }
-
-                        $seen[$required] = true;
-                        $chain[$required] = true;
-                        $next[] = $required;
-                    }
-                }
-            }
-
-            $frontier = $next;
-        }
-
-        return $chain;
     }
 
     /**

@@ -103,6 +103,7 @@ return [
         'attack' => 'Attack',
         'delay' => 'Delay',
         'ratio' => 'Ratio',
+        'range' => 'Range',
         'regen' => 'HP Regen',
         'manaregen' => 'Mana Regen',
         'enduranceregen' => 'End Regen',
